@@ -4,15 +4,14 @@
 ### Global values
 ###################################
 VERSION_MANAGER='1.4.3с'
-VERSION=v2.4.11
+VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
 LANG_FILE="/usr/local/reverse_proxy/lang.conf"
 DEFAULT_FLAGS="/usr/local/reverse_proxy/default.conf"
-DEST_DB="/etc/x-ui/x-ui.db"
+DIR_XRAY="/usr/local/etc/xray/"
 
-SCRIPT_URL="https://raw.githubusercontent.com/cortez24rus/xui-reverse-proxy/refs/heads/main/reverse_proxy.sh"
-DB_SCRIPT_URL="https://raw.githubusercontent.com/cortez24rus/xui-reverse-proxy/refs/heads/main/database/x-ui.db"
+SCRIPT_URL="https://raw.githubusercontent.com/cortez24rus/reverse_proxy/refs/heads/main/config_templates/server_raw.sh?token=GHSAT0AAAAAAC6C2BUANLUKODAXDX66T5Y6Z52FJ5Q"
 
 ###################################
 ### Initialization and Declarations
@@ -1026,8 +1025,8 @@ installation_of_utilities() {
   info " $(text 36) "
   case "$SYSTEM" in
     Debian|Ubuntu)
-      DEPS_PACK_CHECK=("jq" "ufw" "zip" "wget" "gpg" "nano" "cron" "sqlite3" "certbot" "vnstat" "openssl" "netstat" "htpasswd" "update-ca-certificates" "add-apt-repository" "unattended-upgrades" "certbot-dns-cloudflare")
-      DEPS_PACK_INSTALL=("jq" "ufw" "zip" "wget" "gnupg2" "nano" "cron" "sqlite3" "certbot" "vnstat" "openssl" "net-tools" "apache2-utils" "ca-certificates" "software-properties-common" "unattended-upgrades" "python3-certbot-dns-cloudflare")
+      DEPS_PACK_CHECK=("jq" "ufw" "zip" "wget" "gpg" "nano" "cron" "haproxy" "certbot" "vnstat" "openssl" "netstat" "htpasswd" "update-ca-certificates" "add-apt-repository" "unattended-upgrades" "certbot-dns-cloudflare")
+      DEPS_PACK_INSTALL=("jq" "ufw" "zip" "wget" "gnupg2" "nano" "cron" "haproxy" "certbot" "vnstat" "openssl" "net-tools" "apache2-utils" "ca-certificates" "software-properties-common" "unattended-upgrades" "python3-certbot-dns-cloudflare")
 
       for g in "${!DEPS_PACK_CHECK[@]}"; do
         [ ! -x "$(type -p ${DEPS_PACK_CHECK[g]})" ] && [[ ! "${DEPS_PACK[@]}" =~ "${DEPS_PACK_INSTALL[g]}" ]] && DEPS_PACK+=(${DEPS_PACK_INSTALL[g]})
@@ -1043,8 +1042,8 @@ installation_of_utilities() {
       ;;
 
     CentOS|Fedora)
-      DEPS_PACK_CHECK=("jq" "zip" "tar" "wget" "gpg" "nano" "crontab" "sqlite3" "openssl" "netstat" "nslookup" "htpasswd" "certbot" "update-ca-certificates" "certbot-dns-cloudflare")
-      DEPS_PACK_INSTALL=("jq" "zip" "tar" "wget" "gnupg2" "nano" "cronie" "sqlite" "openssl" "net-tools" "bind-utils" "httpd-tools" "certbot" "ca-certificates" "python3-certbot-dns-cloudflare")
+      DEPS_PACK_CHECK=("jq" "zip" "tar" "wget" "gpg" "nano" "crontab" "haproxy" "openssl" "netstat" "nslookup" "htpasswd" "certbot" "update-ca-certificates" "certbot-dns-cloudflare")
+      DEPS_PACK_INSTALL=("jq" "zip" "tar" "wget" "gnupg2" "nano" "cronie" "haproxy" "openssl" "net-tools" "bind-utils" "httpd-tools" "certbot" "ca-certificates" "python3-certbot-dns-cloudflare")
 
       for g in "${!DEPS_PACK_CHECK[@]}"; do
         [ ! -x "$(type -p ${DEPS_PACK_CHECK[g]})" ] && [[ ! "${DEPS_PACK[@]}" =~ "${DEPS_PACK_INSTALL[g]}" ]] && DEPS_PACK+=(${DEPS_PACK_INSTALL[g]})
@@ -1567,69 +1566,15 @@ EOF
 }
 
 ###################################
-### Stream conf
-###################################
-stream_conf() {
-  cat > /etc/nginx/stream-enabled/stream.conf <<EOF
-map \$ssl_preread_server_name \$backend {
-  ${DOMAIN}                            web;
-  ${SUB_DOMAIN}                        xtls;
-  default                              block;
-}
-upstream web {
-  server 127.0.0.1:7443;
-}
-upstream xtls {
-  server 127.0.0.1:8443;
-}
-upstream block {
-  server 127.0.0.1:36076;
-}
-server {
-  listen 443                           reuseport;
-  ssl_preread                          on;
-  proxy_protocol                       on;
-  proxy_pass                           \$backend;
-}
-EOF
-}
-
-###################################
 ### Server conf
 ###################################
 local_conf() {
   cat > /etc/nginx/conf.d/local.conf <<EOF
 server {
-  listen                               80;
-  server_name                          ${DOMAIN} *.${DOMAIN};
-  location / {
-    return 301                         https://\$host\$request_uri;
-  }
-}
-server {
-  listen                               9090 default_server;
-  server_name                          ${DOMAIN} *.${DOMAIN};
-  location / {
-    return 301                         https://\$host\$request_uri;
-  }
-}
-server {
-  listen                               36076 ssl proxy_protocol;
-  ssl_reject_handshake                 on;
-}
-server {
-  listen                               36077 ssl proxy_protocol;
+  listen                               36077;
   http2                                on;
   http3                                on;
-  server_name                          ${DOMAIN} *.${DOMAIN};
-
-  # SSL
-  ssl_certificate                      /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-  ssl_certificate_key                  /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
-  ssl_trusted_certificate              /etc/letsencrypt/live/${DOMAIN}/chain.pem;
-
-  # Diffie-Hellman parameter for DHE ciphersuites
-  ssl_dhparam                          /etc/nginx/dhparam.pem;
+  server_name                          _;
 
   # Site
   index index.html index.htm index.php index.nginx-debian.html;
@@ -1649,24 +1594,6 @@ server {
 EOF
 }
 
-location_panel() {
-  cat > /etc/nginx/locations/panel.conf <<EOF
-# PANEL
-location /${WEB_BASE_PATH} {
-  if (\$hack = 1) {return 404;}
-  proxy_redirect off;
-  proxy_set_header Host \$host;
-  proxy_set_header X-Real-IP \$remote_addr;
-  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-  proxy_set_header X-Real-IP \$remote_addr;
-  proxy_set_header Range \$http_range;
-  proxy_set_header If-Range \$http_if_range;
-  proxy_pass http://127.0.0.1:36075/${WEB_BASE_PATH};
-  break;
-}
-EOF
-}
-
 location_sub() {
   cat > /etc/nginx/locations/sub.conf <<EOF
 # SUB
@@ -1677,21 +1604,6 @@ location /${SUB_PATH} {
   proxy_set_header X-Real-IP \$remote_addr;
   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
   proxy_pass http://127.0.0.1:36074/${SUB_PATH};
-  break;
-}
-EOF
-}
-
-location_sub_json() {
-  cat > /etc/nginx/locations/sub_json.conf <<EOF
-# SUB JSON
-location /${SUB_JSON_PATH} {
-  if (\$hack = 1) {return 404;}
-  proxy_redirect off;
-  proxy_set_header Host \$host;
-  proxy_set_header X-Real-IP \$remote_addr;
-  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-  proxy_pass http://127.0.0.1:36074/${SUB_JSON_PATH};
   break;
 }
 EOF
@@ -1716,39 +1628,12 @@ location /${CDNXHTTP} {
 EOF
 }
 
-location_cdn() {
-  cat > /etc/nginx/locations/grpc_ws.conf <<EOF
-# GRPC WEBSOCKET HTTPUpgrade
-location ~ ^/(?<fwdport>\d+)/(?<fwdpath>.*)\$ {
-  if (\$hack = 1) {return 404;}
-  client_max_body_size 0;
-  client_body_timeout 1d;
-  grpc_read_timeout 1d;
-  grpc_socket_keepalive on;
-  proxy_read_timeout 1d;
-  proxy_http_version 1.1;
-  proxy_buffering off;
-  proxy_request_buffering off;
-  proxy_socket_keepalive on;
-  proxy_set_header Upgrade \$http_upgrade;
-  proxy_set_header Connection "upgrade";
-  proxy_set_header Host \$host;
-  proxy_set_header X-Real-IP \$remote_addr;
-  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-  if (\$content_type ~* "GRPC") { grpc_pass grpc://127.0.0.1:\$fwdport\$is_args\$args; break; }
-  proxy_pass http://127.0.0.1:\$fwdport\$is_args\$args;
-  break;
-}
-EOF
-}
-
 ###################################
 ### NGINX
 ###################################
 nginx_setup() {
   info " $(text 45) "
 
-  mkdir -p /etc/nginx/stream-enabled/
   mkdir -p /etc/nginx/conf.d/
   mkdir -p /etc/nginx/locations/
   rm -rf /etc/nginx/conf.d/default.conf
@@ -1767,13 +1652,9 @@ nginx_setup() {
   esac
 
   nginx_conf
-  stream_conf
   local_conf
-  location_panel
   location_sub
-  location_sub_json
   location_xhttp
-  location_cdn
 
   systemctl daemon-reload
   systemctl restart nginx
@@ -1783,677 +1664,197 @@ nginx_setup() {
 }
 
 ###################################
-### Key generation
+### Функция для генерации UUID
 ###################################
-generate_keys() {
-  # Генерация пары ключей X25519 с использованием xray
-  local KEY_PAIR=$(/usr/local/x-ui/bin/xray-linux-amd64 x25519)
-  local PRIVATE_KEY=$(echo "$KEY_PAIR" | grep "Private key:" | awk '{print $3}')
-  local PUBLIC_KEY=$(echo "$KEY_PAIR" | grep "Public key:" | awk '{print $3}')
-
-  # Возвращаем ключи в виде строки, разделенной пробелом
-  echo "$PRIVATE_KEY $PUBLIC_KEY"
+generate_uuids() {
+    local xray_uuid=$(cat /proc/sys/kernel/random/uuid)
+    local lua_uuid=${xray_uuid//-/}  # Удаляем все "-"
+    echo "$xray_uuid $lua_uuid"
 }
 
 ###################################
-### Grpc
+### AUTH LUA
 ###################################
-settings_grpc() {
-  STREAM_SETTINGS_GRPC=$(cat <<EOF
-{
-  "network": "grpc",
-  "security": "none",
-  "externalProxy": [
-  {
-    "forceTls": "tls",
-    "dest": "${DOMAIN}",
-    "port": 443,
-    "remark": ""
-  }
-  ],
-  "grpcSettings": {
-  "serviceName": "/2053/${CDNGRPC}",
-  "authority": "${DOMAIN}",
-  "multiMode": false
-  }
-}
-EOF
-  )
+auth_lua() {
+  read xray_uuid lua_uuid < <(generate_uuids)
+  read placebo_xray_uuid placebo_lua_uuid < <(generate_uuids)
+  
+  cat > /etc/haproxy/.auth.lua <<EOF
+local passwords = {
+  ["${lua_uuid}"] = true,
+  ["${placebo_lua_uuid}"] = true		-- placebo_lua_uuid
 }
 
-###################################
-### xhttp
-###################################
-settings_xhttp() {
-  STREAM_SETTINGS_XHTTP=$(cat <<EOF
-{
-  "network": "xhttp",
-  "security": "none",
-  "externalProxy": [
-    {
-      "forceTls": "tls",
-      "dest": "${DOMAIN}",
-      "port": 443,
-      "remark": ""
-    }
-  ],
-  "xhttpSettings": {
-    "path": "/${CDNXHTTP}",
-    "host": "",
-    "headers": {},
-    "scMaxBufferedPosts": 30,
-    "scMaxEachPostBytes": "1000000",
-    "noSSEHeader": false,
-    "xPaddingBytes": "100-1000",
-    "mode": "packet-up"
-  },
-  "sockopt": {
-    "acceptProxyProtocol": false,
-    "tcpFastOpen": true,
-    "mark": 0,
-    "tproxy": "off",
-    "tcpMptcp": true,
-    "tcpNoDelay": true,
-    "domainStrategy": "UseIP",
-    "tcpMaxSeg": 1440,
-    "dialerProxy": "",
-    "tcpKeepAliveInterval": 0,
-    "tcpKeepAliveIdle": 300,
-    "tcpUserTimeout": 10000,
-    "tcpcongestion": "bbr",
-    "V6Only": false,
-    "tcpWindowClamp": 600,
-    "interface": ""
-  }
-}
-EOF
-  )
-}
+function vless_auth(txn)
+  local status, data = pcall(function() return txn.req:dup() end)
+  if status and data then
+    -- Uncomment to enable logging of all received data
+    core.Info("Received data from client: " .. data)
+    local sniffed_password = string.sub(data, 2, 17)
 
-###################################
-### Httpu
-###################################
-settings_httpu() {
-  STREAM_SETTINGS_HTTPU=$(cat <<EOF
-{
-  "network": "httpupgrade",
-  "security": "none",
-  "externalProxy": [
-  {
-    "forceTls": "tls",
-    "dest": "${DOMAIN}",
-    "port": 443,
-    "remark": ""
-  }
-  ],
-  "httpupgradeSettings": {
-  "acceptProxyProtocol": false,
-  "path": "/2073/${CDNHTTPU}",
-  "host": "${DOMAIN}",
-  "headers": {}
-  }
-}
-EOF
-  )
-}
+    local hex = (sniffed_password:gsub(".", function(c)
+      return string.format("%02x", string.byte(c))
+    end))
 
-###################################
-### Ws
-###################################
-settings_ws() {
-  STREAM_SETTINGS_WS=$(cat <<EOF
-{
-  "network": "ws",
-  "security": "none",
-  "externalProxy": [
-  {
-    "forceTls": "tls",
-    "dest": "${DOMAIN}",
-    "port": 443,
-    "remark": ""
-  }
-  ],
-  "wsSettings": {
-  "acceptProxyProtocol": false,
-  "path": "/2083/${CDNWS}",
-  "host": "${DOMAIN}",
-  "headers": {}
-  }
-}
-EOF
-  )
-}
+    -- Uncomment to enable logging of sniffed password hashes
+    core.Info("Sniffed password: " .. hex)
+    if passwords[hex] then
+      return "vless"
+    end
+  end
+  return "http"
+end
 
-###################################
-### Settings reality (Steal Oneself)
-###################################
-settings_steal() {
-  read PRIVATE_KEY0 PUBLIC_KEY0 <<< "$(generate_keys)"
-  STREAM_SETTINGS_STEAL=$(cat <<EOF
-{
-  "network": "tcp",
-  "security": "reality",
-  "externalProxy": [
-  {
-    "forceTls": "same",
-    "dest": "${SUB_DOMAIN}",
-    "port": 443,
-    "remark": ""
-  }
-  ],
-  "realitySettings": {
-  "show": false,
-  "xver": 2,
-  "dest": "36077",
-  "serverNames": [
-    "${DOMAIN}"
-  ],
-  "privateKey": "${PRIVATE_KEY0}",
-  "minClient": "",
-  "maxClient": "",
-  "maxTimediff": 0,
-  "shortIds": [
-    "22dff0",
-    "0041e9ca",
-    "49afaa139d",
-    "89",
-    "1addf92cc1bd50",
-    "6e122954e9df",
-    "8d93026df5de065c",
-    "bc85"
-  ],
-  "settings": {
-    "publicKey": "${PUBLIC_KEY0}",
-    "fingerprint": "chrome",
-    "serverName": "",
-    "spiderX": "/"
-  }
-  },
-  "tcpSettings": {
-  "acceptProxyProtocol": true,
-  "header": {
-    "type": "none"
-  }
-  }
-}
-EOF
-  )
-}
-
-###################################
-### Settings xtls
-###################################
-settings_xtls() {
-  STREAM_SETTINGS_XTLS=$(cat <<EOF
-{
-  "network": "tcp",
-  "security": "tls",
-  "externalProxy": [
-  {
-    "forceTls": "same",
-    "dest": "${SUB_DOMAIN}",
-    "port": 443,
-    "remark": ""
-  }
-  ],
-  "tlsSettings": {
-  "serverName": "${SUB_DOMAIN}",
-  "minVersion": "1.3",
-  "maxVersion": "1.3",
-  "cipherSuites": "",
-  "rejectUnknownSni": false,
-  "disableSystemRoot": false,
-  "enableSessionResumption": false,
-  "certificates": [
-    {
-    "certificateFile": "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem",
-    "keyFile": "/etc/letsencrypt/live/${DOMAIN}/privkey.pem",
-    "ocspStapling": 3600,
-    "oneTimeLoading": false,
-    "usage": "encipherment",
-    "buildChain": false
-    }
-  ],
-  "alpn": [
-    "http/1.1"
-  ],
-  "settings": {
-    "allowInsecure": false,
-    "fingerprint": "chrome"
-  }
-  },
-  "tcpSettings": {
-  "acceptProxyProtocol": true,
-  "header": {
-    "type": "none"
-  }
-  }
-}
-EOF
-  )
-}
-
-###################################
-### Sniffing
-###################################
-sniffing_inbounds() {
-  SNIFFING=$(cat <<EOF
-{
-  "enabled": true,
-  "destOverride": [
-    "http",
-    "tls",
-    "quic",
-    "fakedns"
-  ],
-  "metadataOnly": false,
-  "routeOnly": false
-}
-EOF
-  )
-}
-
-###################################
-### Json routing rules
-###################################
-json_rules() {
-  # [{"type":"field","outboundTag":"direct","domain":["keyword:xn--","keyword:yandex","keyword:avito","keyword:2gis","keyword:gismeteo","keyword:livejournal"]},{"type":"field","outboundTag":"direct","domain":["domain:ru","domain:su","domain:kg","domain:by","domain:kz"]},{"type":"field","outboundTag":"direct","domain":["geosite:category-ru","geosite:category-gov-ru","geosite:yandex","geosite:vk","geosite:whatsapp","geosite:apple","geosite:mailru","geosite:github","geosite:gitlab","geosite:duckduckgo","geosite:google","geosite:wikimedia","geosite:mozilla"]},{"type":"field","outboundTag":"direct","ip":["geoip:private","geoip:ru"]}]
-  SUB_JSON_RULES=$(cat <<EOF
-[{"type":"field","outboundTag":"direct","domain":["geosite:category-ru","geosite:apple","geosite:google"]},{"type":"field","outboundTag":"direct","ip":["geoip:private","geoip:ru"]}]
-EOF
-)
-}
-
-###################################
-### Xray template json
-###################################
-xray_template() {
-  if [[ ${args[warp]} == "true" ]]; then
-    RULES="warp"
-  else
-    RULES="IPv4"
-  fi
-  XRAY_TEMPLATE_CONFIG=$(cat <<EOF
-{
-  "log": {
-    "access": "./access.log",
-    "dnsLog": false,
-    "error": "./error.log",
-    "loglevel": "warning",
-    "maskAddress": ""
-  },
-  "api": {
-    "tag": "api",
-    "services": [
-      "HandlerService",
-      "LoggerService",
-      "StatsService"
-    ]
-  },
-  "inbounds": [
-    {
-      "tag": "api",
-      "listen": "127.0.0.1",
-      "port": 62789,
-      "protocol": "dokodemo-door",
-      "settings": {
-        "address": "127.0.0.1"
-      }
-    }
-  ],
-  "outbounds": [
-    {
-      "tag": "direct",
-      "protocol": "freedom",
-      "settings": {
-        "domainStrategy": "ForceIPv4",
-        "redirect": "",
-        "noises": []
-      }
-    },
-    {
-      "tag": "blocked",
-      "protocol": "blackhole",
-      "settings": {}
-    },
-    {
-      "tag": "IPv4",
-      "protocol": "freedom",
-      "settings": {
-        "domainStrategy": "UseIPv4"
-      }
-    },
-    {
-      "tag": "warp",
-      "protocol": "socks",
-      "settings": {
-        "servers": [
-          {
-            "address": "127.0.0.1",
-            "port": 40000,
-            "users": []
-          }
-        ]
-      }
-    }
-  ],
-  "policy": {
-    "levels": {
-      "0": {
-        "statsUserDownlink": true,
-        "statsUserUplink": true
-      }
-    },
-    "system": {
-      "statsInboundDownlink": true,
-      "statsInboundUplink": true,
-      "statsOutboundDownlink": true,
-      "statsOutboundUplink": true
-    }
-  },
-  "routing": {
-    "domainStrategy": "AsIs",
-    "rules": [
-      {
-        "type": "field",
-        "inboundTag": [
-          "api"
-        ],
-        "outboundTag": "api"
-      },
-      {
-        "type": "field",
-        "domain": [
-          "geosite:category-ads-all",
-          "ext:geosite_IR.dat:category-ads-all",
-          "ext:geosite_IR.dat:malware",
-          "ext:geosite_IR.dat:phishing",
-          "ext:geosite_IR.dat:cryptominers"
-        ],
-        "outboundTag": "blocked"
-      },
-      {
-        "type": "field",
-        "domain": [
-          "geosite:google"
-        ],
-        "outboundTag": "${RULES}"
-      },
-      {
-        "type": "field",
-        "domain": [
-          "domain:gemini.google.com"
-        ],
-        "outboundTag": "${RULES}"
-      },
-      {
-        "type": "field",
-        "domain": [
-          "keyword:xn--"
-        ],
-        "outboundTag": "${RULES}"
-      },
-      {
-        "type": "field",
-        "domain": [
-          "geosite:intel",
-          "geosite:category-ru"
-        ],
-        "outboundTag": "${RULES}"
-      },
-      {
-        "type": "field",
-        "ip": [
-          "geoip:ru"
-        ],
-        "outboundTag": "${RULES}"
-      }
-    ]
-  },
-  "stats": {}
-}
-EOF
-  )
-}
-
-###################################
-### Updating username, password in users
-###################################
-update_user_db() {
-  sqlite3 $DEST_DB <<EOF
-UPDATE users SET username = '$USERNAME', password = '$PASSWORD' WHERE id = 1;
+core.register_fetches("vless_auth", vless_auth)
 EOF
 }
 
 ###################################
-### Updating stream_settings in inbound
+### HAPROXY
 ###################################
-update_stream_settings_db() {
-  sqlite3 $DEST_DB <<EOF
-UPDATE inbounds SET stream_settings = '$STREAM_SETTINGS_GRPC' WHERE LOWER(remark) LIKE '%grpc%';
-UPDATE inbounds SET stream_settings = '$STREAM_SETTINGS_XHTTP' WHERE LOWER(remark) LIKE '%xhttp%';
-UPDATE inbounds SET stream_settings = '$STREAM_SETTINGS_HTTPU' WHERE LOWER(remark) LIKE '%httpu%';
-UPDATE inbounds SET stream_settings = '$STREAM_SETTINGS_WS' WHERE LOWER(remark) LIKE '%ws%';
-UPDATE inbounds SET stream_settings = '$STREAM_SETTINGS_STEAL' WHERE LOWER(remark) LIKE '%steal%';
-UPDATE inbounds SET stream_settings = '$STREAM_SETTINGS_XTLS' WHERE LOWER(remark) LIKE '%xtls%';
+haproxy_setup() {
+  info " $(text 45) "
+  auth_lua
+
+  mkdir /etc/haproxy/certs
+  cat /etc/letsencrypt/live/${DOMAIN}/fullchain.pem /etc/letsencrypt/live/${DOMAIN}/privkey.pem > /etc/haproxy/certs/${DOMAIN}.pem
+
+  cat > /etc/haproxy/haproxy.cfg <<EOF
+global
+        # Uncomment to enable system logging
+        # log /dev/log local0
+        # log /dev/log local1 notice
+        log /dev/log local2 warning
+        lua-load /etc/haproxy/.auth.lua
+        chroot /var/lib/haproxy
+        stats socket /run/haproxy/admin.sock mode 660 level admin
+        stats timeout 30s
+        user haproxy
+        group haproxy
+        daemon
+
+        # Mozilla Intermediate
+        # ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
+        # ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+        # ssl-default-bind-options prefer-client-ciphers no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
+        # ssl-default-server-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
+        # ssl-default-server-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+        # ssl-default-server-options no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
+
+        # Mozilla Modern
+        ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+        ssl-default-bind-options prefer-client-ciphers no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
+        ssl-default-server-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+        ssl-default-server-options no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
+
+        # You must first generate DH parameters - [ openssl dhparam -out /etc/haproxy/dhparam.pem 2048 ]
+        ssl-dh-param-file /etc/haproxy/dhparam.pem
+
+defaults
+        mode http
+        log global
+        option tcplog
+        option  dontlognull
+        timeout connect 5000
+        timeout client  50000
+        timeout server  50000
+
+frontend haproxy-tls
+        mode tcp
+        timeout client 1h
+        bind :::443 v4v6 ssl crt /etc/haproxy/certs/swe.theleetworld.ru.pem alpn h2,http/1.1
+        acl host_ip hdr(host) -i ${IP4}
+        tcp-request content reject if host_ip
+        tcp-request inspect-delay 5s
+        tcp-request content accept if { req_ssl_hello_type 1 }
+        use_backend http-panel if { path /${WEB_BASE_PATH} }
+        use_backend %[lua.vless_auth]
+        default_backend http
+
+backend vless
+        mode tcp
+        timeout server 1h
+        server xray 127.0.0.1:10550
+
+backend http
+        mode http
+        server nginx 127.0.0.1:36077
+
+backend http-panel
+        mode http
+        server panel 127.0.0.1:36075
+
 EOF
+
+  systemctl enable haproxy.service
+  haproxy -f /etc/haproxy/haproxy.cfg -c
+  systemctl restart haproxy.service
+
+  tilda "$(text 10)"
 }
 
 ###################################
-### Updating sniffing in inbound
+### Xray installation
 ###################################
-update_sniffing_settings_db() {
-  sqlite3 $DEST_DB <<EOF
-UPDATE inbounds SET sniffing = '$SNIFFING' WHERE LOWER(remark) LIKE '%grpc%';
-UPDATE inbounds SET sniffing = '$SNIFFING' WHERE LOWER(remark) LIKE '%xhttp%';
-UPDATE inbounds SET sniffing = '$SNIFFING' WHERE LOWER(remark) LIKE '%httpu%';
-UPDATE inbounds SET sniffing = '$SNIFFING' WHERE LOWER(remark) LIKE '%ws%';
-UPDATE inbounds SET sniffing = '$SNIFFING' WHERE LOWER(remark) LIKE '%steal%';
-UPDATE inbounds SET sniffing = '$SNIFFING' WHERE LOWER(remark) LIKE '%xtls%';
-EOF
-}
+install_xray() {
+  mkdir -p "${DIR_XRAY}"
 
-###################################
-### Updating value in settings
-###################################
-update_settings_db() {
-  sqlite3 $DEST_DB <<EOF
-UPDATE settings SET value = '/${WEB_BASE_PATH}/' WHERE LOWER(key) LIKE '%webbasepath%';
-UPDATE settings SET value = '/${SUB_PATH}/' WHERE LOWER(key) LIKE '%subpath%';
-UPDATE settings SET value = '${SUB_URI}' WHERE LOWER(key) LIKE '%suburi%';
-UPDATE settings SET value = '/${SUB_JSON_PATH}/' WHERE LOWER(key) LIKE '%subjsonpath%';
-UPDATE settings SET value = '${SUB_JSON_URI}' WHERE LOWER(key) LIKE '%subjsonuri%';
-UPDATE settings SET value = '${XRAY_TEMPLATE_CONFIG}' WHERE LOWER(key) LIKE '%xraytemplateconfig%';
-EOF
-}
-
-###################################
-### Setting bot
-###################################
-update_settings_tgbot_db() {
-  sqlite3 $DEST_DB <<EOF
-UPDATE settings SET value = 'true' WHERE LOWER(key) LIKE '%tgbotenable%';
-UPDATE settings SET value = '${ADMIN_ID}' WHERE LOWER(key) LIKE '%tgbottoken%';
-UPDATE settings SET value = '${BOT_TOKEN}' WHERE LOWER(key) LIKE '%tgbotchatid%';
-EOF
-}
-
-###################################
-### Updating json rules in the database
-###################################
-update_json_rules_db() {
-  sqlite3 $DEST_DB <<EOF
-UPDATE settings SET value = '${SUB_JSON_RULES}' WHERE LOWER(key) LIKE '%subjsonrules%';
-EOF
-}
-
-###################################
-### Changing the Database
-###################################
-change_db() {
-  settings_grpc
-  settings_xhttp
-  settings_httpu
-  settings_ws
-  settings_steal
-  settings_xtls
-  sniffing_inbounds
-  json_rules
-  xray_template
-
-  update_user_db
-  update_stream_settings_db
-  update_sniffing_settings_db
-  update_settings_db
-  if [[ ${args[tgbot]} == "true" ]]; then
-    update_settings_tgbot_db
-  fi
-  update_json_rules_db
-}
-
-###################################
-### Panel installation
-###################################
-install_panel() {
-  info " $(text 46) "
-  SUB_URI=https://${DOMAIN}/${SUB_PATH}/
-  SUB_JSON_URI=https://${DOMAIN}/${SUB_JSON_PATH}/
-
-  echo -e "n" | bash <(curl -sS "https://raw.githubusercontent.com/mhsanaei/3x-ui/$VERSION/install.sh") $VERSION >/dev/null 2>&1
-  if ! systemctl is-active fail2ban.service; then
-    echo -e "20\n1" | x-ui
-  fi
-  x-ui stop
-
-  mv -f "$DEST_DB" "$DEST_DB.backup"
-  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -O "$DEST_DB" "$DB_SCRIPT_URL"; do
+  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -P "${DIR_REVERSE_PROXY}" "https://github.com/XTLS/Xray-core/releases/download/v${VERSION_XRAY}/Xray-linux-64.zip"; do
     warning " $(text 38) "
     sleep 3
   done
 
-  change_db
+  unzip -o "${DIR_REVERSE_PROXY}Xray-linux-64.*" -d "${DIR_XRAY}"
+  rm -f ${DIR_REVERSE_PROXY}Xray-linux-64.*
+  ln -sf ${DIR_XRAY}xray /usr/local/bin/xray/xray
 
-  x-ui start
-  tilda "$(text 10)"
-}
-
-###################################
-### Custom subscription json
-###################################
-custom_sub_json(){
-  cat > /etc/nginx/locations/webpagesub.conf <<EOF
-# Web Page Subscription Path
-location ~ ^/${WEB_SUB_PATH} {
-  default_type application/json;
-  root /var/www/subpage;
-  index index.html;
-  try_files /index.html =404;
-}
-EOF
-
-  cat > /etc/nginx/locations/clash_sub.conf <<EOF
-# Clash Meta Subscription Path
-location ~ ^/${WEB_SUB_PATH}/clashmeta/(.+)$ {
-  default_type text/plain;
-  ssi on;
-  ssi_types text/plain;
-  set \$subid \$1;
-  root /var/www/subpage;
-  try_files /clash.yaml =404;
-}
-EOF
-
-  cat > /etc/nginx/locations/subsingbox.conf <<EOF
-# Sub2sing-box
-location /${SUB2_SINGBOX_PATH}/ {
-  proxy_redirect off;
-  proxy_set_header Host \$host;
-  proxy_set_header X-Real-IP \$remote_addr;
-  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-  proxy_pass http://127.0.0.1:8080/;
-}
-EOF
-}
-
-###################################
-### Settings web sub page
-###################################
-settings_web(){
-  DEST_DIR_SUB_PAGE="/var/www/subpage"
-  DEST_FILE_SUB_PAGE="$DEST_DIR_SUB_PAGE/index.html"
-  DEST_FILE_CLASH_SUB="$DEST_DIR_SUB_PAGE/clash.yaml"
-  sudo mkdir -p "$DEST_DIR_SUB_PAGE"
-
-  URL_SUB_PAGE="https://github.com/legiz-ru/x-ui-pro/raw/master/sub-3x-ui.html"
-  sudo curl -L "$URL_SUB_PAGE" -o "$DEST_FILE_SUB_PAGE"
-  URL_CLASH_SUB="https://github.com/legiz-ru/x-ui-pro/raw/master/clash/clash.yaml"
-  sudo curl -L "$URL_CLASH_SUB" -o "$DEST_FILE_CLASH_SUB"
-
-  sed -i "s/\${DOMAIN}/$DOMAIN/g" "$DEST_FILE_SUB_PAGE"
-  sed -i "s/\${DOMAIN}/$DOMAIN/g" "$DEST_FILE_CLASH_SUB"
-  sed -i "s#\${SUB_JSON_PATH}#$SUB_JSON_PATH#g" "$DEST_FILE_SUB_PAGE"
-  sed -i "s#\${SUB_PATH}#$SUB_PATH#g" "$DEST_FILE_SUB_PAGE"
-  sed -i "s#\${SUB_PATH}#$SUB_PATH#g" "$DEST_FILE_CLASH_SUB"
-  sed -i "s|sub.legiz.ru|$DOMAIN/$SUB2_SINGBOX_PATH|g" "$DEST_FILE_SUB_PAGE"
-}
-
-###################################
-### Install sing-box converter
-###################################
-install_singbox_converter(){
-  wget -q -P /root/ https://github.com/legiz-ru/sub2sing-box/releases/download/v0.0.9/sub2sing-box_0.0.9_linux_amd64.tar.gz
-  tar -xvzf /root/sub2sing-box_0.0.9_linux_amd64.tar.gz -C /root/ --strip-components=1 sub2sing-box_0.0.9_linux_amd64/sub2sing-box
-  mv /root/sub2sing-box /usr/bin/
-  chmod +x /usr/bin/sub2sing-box
-  rm /root/sub2sing-box_0.0.9_linux_amd64.tar.gz
-  su -c "/usr/bin/sub2sing-box server --bind 127.0.0.1 --port 8080 & disown" root
-}
-
-###################################
-### Update subscription json uri database
-###################################
-update_subjsonuri_db() {
-  sqlite3 $DEST_DB <<EOF
-UPDATE settings SET value = '${SUB_JSON_URI}' WHERE LOWER(key) LIKE '%subjsonuri%';
-EOF
-}
-
-###################################
-### Settings custom json
-###################################
-settings_custom_json(){
-  info " $(text 99) "
-  mkdir -p /etc/nginx/locations/
-  CONF_FILE="/etc/nginx/locations/webpagesub.conf"
-
-  while [[ -z "$DOMAIN" ]]; do
-    reading " $(text 13) " DOMAIN  # Запрашиваем домен
-    DOMAIN=$(clean_url "$DOMAIN")  # Очищаем домен
+  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -P "${DIR_REVERSE_PROXY}" "https://github.com/XTLS/Xray-core/releases/download/v${VERSION_XRAY}/Xray-linux-64.zip"; do
+    warning " $(text 38) "
+    sleep 3
   done
 
-  select_from_db
-  if [[ -f "$CONF_FILE" ]]; then
-    WEB_SUB_PATH=$(sed -n 's|location ~ \^/\([^ ]*\).*|\1|p' "$CONF_FILE")
-  else
-    WEB_SUB_PATH=$(eval "${generate[path]}")
-  fi
-  SUB2_SINGBOX_PATH=$(eval ${generate[path]})
-  SUB_JSON_URI=https://${DOMAIN}/${WEB_SUB_PATH}?name=
+}
 
-  custom_sub_json
-  install_singbox_converter
-  settings_web
+###################################
+### Xray service
+###################################
+xray_service() {
+  cat > /etc/systemd/system/xray.service <<EOF
+[Unit]
+Description=Xray Service
+Documentation=https://github.com/XTLS/Xray-core
+After=network.target nss-lookup.target
 
-  update_subjsonuri_db
-  if ! grep -Fq "include /etc/nginx/locations/*.conf;" /etc/nginx/conf.d/local.conf; then
-    sed -i '$ s/}/\n  # Enable locations\n  include \/etc\/nginx\/locations\/\*.conf;\n}/' /etc/nginx/conf.d/local.conf
-  fi
-  nginx -s reload
+[Service]
+User=root
+ExecStart=/usr/local/bin/xray run -config /usr/local/etc/xray/config.json
+Restart=on-failure
+RestartPreventExitStatus=23
+LimitNPROC=10000
+LimitNOFILE=1048576
 
-  crontab -l | grep -v -- "sub2sing-box" | crontab -
-  add_cron_rule "@reboot /usr/bin/sub2sing-box server --bind 127.0.0.1 --port 8080"
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  systemctl daemon-reload
+  systemctl enable xray
+  systemctl start xray
+}
+
+###################################
+### Xray settings
+###################################
+setting_xray() {
+  info " $(text 46) "
+
+  install_xray
+  xray_service
+
+
   tilda "$(text 10)"
 }
+
 
 ###################################
 ### BACKUP DIRECTORIES
@@ -2658,60 +2059,11 @@ download_website() {
 }
 
 ###################################
-### Create a backup of certificates
-###################################
-create_cert_backup() {
-  local DOMAIN=$1
-  local ACTION=$2 # Тип действия: "cp" или "mv"
-  local TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-  local BACKUP_DIR="/etc/letsencrypt/backups/${DOMAIN}_${TIMESTAMP}"
-
-  mkdir -p "${BACKUP_DIR}"
-
-  $ACTION /etc/letsencrypt/live ${BACKUP_DIR}
-  $ACTION /etc/letsencrypt/archive ${BACKUP_DIR}
-  $ACTION /etc/letsencrypt/renewal ${BACKUP_DIR}
-}
-
-###################################
-### Database change in domain
-###################################
-database_change_domain() {
-  sqlite3 $DEST_DB <<EOF
-UPDATE settings
-SET value = REPLACE(value, '$OLD_DOMAIN', '$DOMAIN')
-WHERE value LIKE '%$OLD_DOMAIN%';
-
-UPDATE inbounds
-SET stream_settings = REPLACE(stream_settings, '$OLD_SUB_DOMAIN', '$SUB_DOMAIN')
-WHERE stream_settings LIKE '%$OLD_SUB_DOMAIN%';
-
-UPDATE inbounds
-SET stream_settings = REPLACE(stream_settings, '$OLD_DOMAIN', '$DOMAIN')
-WHERE stream_settings LIKE '%$OLD_DOMAIN%';
-EOF
-}
-
-###################################
 ### Change domain name
 ###################################
 change_domain() {
-  select_from_db
-  check_cf_token
-  create_cert_backup "$OLD_DOMAIN" "mv"
-  issuance_of_certificates
 
-  database_change_domain
-  sed -i -e "
-    s/$OLD_SUB_DOMAIN/$SUB_DOMAIN/g;
-    s/$OLD_DOMAIN/$DOMAIN/g;
-  " /etc/nginx/stream-enabled/stream.conf
-  sed -i -e "s/$OLD_DOMAIN/$DOMAIN/g" /etc/nginx/conf.d/local.conf
 
-  echo "$OLD_DOMAIN > $DOMAIN"
-  echo "$OLD_SUB_DOMAIN > $SUB_DOMAIN"
-
-  systemctl restart nginx
   tilda "$(text 10)"
 }
 
@@ -2743,10 +2095,7 @@ renew_cert() {
 ### Depersonalization of the database
 ###################################
 depersonalization_db() {
-  cp ${DEST_DB} ${DEST_DB}.temp
-  change_db
-  mv ${DEST_DB} /root/
-  mv ${DEST_DB}.temp ${DEST_DB}
+
 }
 
 ###################################
@@ -2762,109 +2111,10 @@ directory_size() {
 }
 
 ###################################
-### Query from database
-###################################
-select_from_db(){
-  result1=$(sqlite3 "$DEST_DB" "SELECT username, password FROM users WHERE id = 1;")
-  USERNAME=$(echo "$result1" | cut -d '|' -f 1)  # Первая часть (username)
-  PASSWORD=$(echo "$result1" | cut -d '|' -f 2)  # Вторая часть (password)
-
-  result2=$(sqlite3 "$DEST_DB" "SELECT value FROM settings WHERE key IN ('webBasePath', 'subPath', 'subJsonPath');")
-  WEB_BASE_PATH=$(echo "$result2" | sed -n '1p' | sed 's/^\/\(.*\)\/$/\1/')
-  SUB_PATH=$(echo "$result2" | sed -n '2p' | sed 's/^\/\(.*\)\/$/\1/')
-  SUB_JSON_PATH=$(echo "$result2" | sed -n '3p' | sed 's/^\/\(.*\)\/$/\1/')
-}
-
-###################################
-### Client traffic migration
-###################################
-client_traffics_migration_db(){
-  sqlite3 "$DEST_DB" <<EOF
-ATTACH '$SOURCE_DB' AS source_db;
-INSERT OR REPLACE INTO client_traffics SELECT * FROM source_db.client_traffics;
-DETACH source_db;
-EOF
-}
-
-###################################
-### Settings migration
-###################################
-settings_migration_db(){
-  sqlite3 "$DEST_DB" <<EOF
-ATTACH '$SOURCE_DB' AS source_db;
-INSERT OR REPLACE INTO settings SELECT * FROM source_db.settings;
-DETACH source_db;
-EOF
-}
-
-###################################
-### Inbounds settings migration
-###################################
-inbounds_settings_migration_db(){
-  sqlite3 "$DEST_DB" <<EOF
-ATTACH DATABASE '$SOURCE_DB' AS source_db;
-
-UPDATE inbounds
-SET settings = NULL
-WHERE remark IN (
-  SELECT remark
-  FROM source_db.inbounds
-  WHERE source_db.inbounds.remark = inbounds.remark
-);
-
-UPDATE inbounds
-SET settings = (
-  SELECT CASE 
-    WHEN source_db.settings IS NOT NULL THEN source_db.settings 
-    ELSE inbounds.settings
-  END
-  FROM source_db.inbounds AS source_db
-  WHERE source_db.remark = inbounds.remark
-)
-WHERE remark IN (
-  SELECT remark FROM source_db.inbounds
-);
-
-DETACH DATABASE source_db;
-EOF
-}
-
-###################################
 ### Migration to a new version
 ###################################
 migration(){
   info " $(text 97) "
-  SOURCE_DB="/etc/x-ui/source.db"
-
-  rotation_and_archiving
-  select_from_db
-  generate_path_cdn
-
-  x-ui stop
-
-  cp "$DEST_DB" "/root/source.db"
-  mv -f "$DEST_DB" "$SOURCE_DB"
-  cp -r /etc/nginx /root/source.nginx
-
-  DOMAIN=""
-  SUB_DOMAIN=""
-
-  echo
-  reading " $(text 13) " TEMP_DOMAIN_L
-  DOMAIN=$(clean_url "$TEMP_DOMAIN_L")
-  echo
-  reading " $(text 81) " TEMP_DOMAIN_L
-  SUB_DOMAIN=$(clean_url "$TEMP_DOMAIN_L")
-  echo
-
-  nginx_setup
-  install_panel
-
-  x-ui stop
-  client_traffics_migration_db
-  settings_migration_db
-  inbounds_settings_migration_db
-  x-ui start
 
   info " $(text 98) "
 }
@@ -2930,9 +2180,11 @@ backup_migration() {
 ###################################
 restore_backup() {
   info " $(text 100) "
+
   RESTORE_DIR="/tmp/restore"
   unzip_backup
   backup_migration
+
   info " $(text 103) "
 }
 
@@ -2998,7 +2250,6 @@ main() {
     info " $(text 90) "                      # 4. Change domain
     info " $(text 91) "                      # 5. Renew cert
     echo
-    info " $(text 92) "                      # 6. Custom json
     info " $(text 93) "                      # 7. Steal web site
     info " $(text 94) "                      # 8. Disable IPv6
     info " $(text 95) "                      # 9. Enable IPv6
@@ -3028,12 +2279,12 @@ main() {
         [[ ${args[cert]} == "true" ]] && issuance_of_certificates
         [[ ${args[mon]} == "true" ]] && monitoring
         [[ ${args[shell]} == "true" ]] && shellinabox
-        write_defaults_to_file
         update_reverse_proxy
         random_site
         [[ ${args[nginx]} == "true" ]] && nginx_setup
-        [[ ${args[panel]} == "true" ]] && install_panel
-        [[ ${args[custom]} == "true" ]] && settings_custom_json
+        [[ ${args[nginx]} == "true" ]] && haproxy_setup
+        [[ ${args[panel]} == "true" ]] && install_xray
+        write_defaults_to_file
         rotation_and_archiving
         [[ ${args[firewall]} == "true" ]] && enabling_security
         [[ ${args[ssh]} == "true" ]] && ssh_setup
@@ -3053,10 +2304,6 @@ main() {
         ;;
       5)
         renew_cert
-        ;;
-      6)
-        DOMAIN=""
-        settings_custom_json
         ;;
       7)
         download_website

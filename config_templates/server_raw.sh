@@ -26,29 +26,11 @@
       {
         "type": "field",
         "domain": [
-          "geosite:google"
-        ],
-        "outboundTag": "warp"
-      },
-      {
-        "type": "field",
-        "domain": [
-          "domain:gemini.google.com"
-        ],
-        "outboundTag": "warp"
-      },
-      {
-        "type": "field",
-        "domain": [
-          "keyword:xn--"
-        ],
-        "outboundTag": "warp"
-      },
-      {
-        "type": "field",
-        "domain": [
+          "geosite:google",
           "geosite:intel",
-          "category-ru"
+          "geosite:category-ru",
+          "keyword:xn--",
+          "domain:gemini.google.com"
         ],
         "outboundTag": "warp"
       },
@@ -84,6 +66,7 @@
       "allocate": null
     },
     {
+      "tag": "vless_raw",
       "listen": "127.0.0.1",
       "port": 10550,
       "protocol": "vless",
@@ -91,12 +74,10 @@
         "clients": [
           {
             "email": "ggpe4nb7",
-            "flow": "",
-            "id": "b1b8346c-83e1-40aa-883c-d160bf7dcb3f"
+            "level": 0,
+            "id": "uuid_templates"
           }
-        ],
-        "decryption": "none",
-        "fallbacks": []
+        ]
       },
       "streamSettings": {
         "network": "tcp",
@@ -108,7 +89,6 @@
           }
         }
       },
-      "tag": "inbound-127.0.0.1:10550",
       "sniffing": {
         "enabled": true,
         "destOverride": [
