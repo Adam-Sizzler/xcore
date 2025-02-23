@@ -10,21 +10,18 @@
     "domainStrategy": "AsIs",
     "rules": [
       {
-        "type": "field",
         "inboundTag": [
           "api"
         ],
         "outboundTag": "api"
       },
       {
-        "type": "field",
         "domain": [
           "geosite:category-ads-all"
         ],
         "outboundTag": "blocked"
       },
       {
-        "type": "field",
         "domain": [
           "geosite:google",
           "geosite:intel",
@@ -35,14 +32,12 @@
         "outboundTag": "warp"
       },
       {
-        "type": "field",
         "ip": [
           "geoip:ru"
         ],
         "outboundTag": "warp"
       },
       {
-        "type": "field",
         "domain": [
           "regexp:.*\\.ru$",
           "regexp:.*\\.su$"
@@ -54,6 +49,7 @@
   "dns": null,
   "inbounds": [
     {
+      "tag": "api",
       "listen": "127.0.0.1",
       "port": 62789,
       "protocol": "dokodemo-door",
@@ -61,7 +57,6 @@
         "address": "127.0.0.1"
       },
       "streamSettings": null,
-      "tag": "api",
       "sniffing": null,
       "allocate": null
     },

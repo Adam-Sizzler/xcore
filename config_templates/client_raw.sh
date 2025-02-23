@@ -1,4 +1,5 @@
 {
+  "remarks": "HAPROXY",
   "log": {
     "loglevel": "warning"
   },
@@ -102,18 +103,18 @@
       "metadataOnly": false
     },
     {
+      "tag": "http",
       "port": 10809,
       "protocol": "http",
       "settings": {
         "userLevel": 8
-      },
-      "tag": "http"
+      }
     }
   ],
   "outbounds": [
     {
+      "tag": "vless_raw",
       "protocol": "vless",
-      "tag": "proxy",
       "streamSettings": {
         "network": "tcp",
         "security": "tls",
@@ -125,7 +126,6 @@
         "tslSettings": {
           "utls": {
             "alpn": [
-              "h3",
               "h2",
               "http/1.1"
             ],
@@ -156,8 +156,8 @@
       }
     },
     {
-      "protocol": "freedom",
       "tag": "direct",
+      "protocol": "freedom",
       "settings": {
         "domainStrategy": "ForceIPv4"
       },
@@ -167,8 +167,8 @@
       }
     },
     {
-      "protocol": "blackhole",
       "tag": "block",
+      "protocol": "blackhole",
       "settings": {
         "response": {
           "type": "none"
@@ -176,7 +176,6 @@
       }
     }
   ],
-  "remarks": "HAPROXY",
   "routing": {
     "domainStrategy": "IPIfNonMatch",
     "domainMatcher": "hybrid",
