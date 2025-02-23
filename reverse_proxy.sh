@@ -11,7 +11,8 @@ LANG_FILE="/usr/local/reverse_proxy/lang.conf"
 DEFAULT_FLAGS="/usr/local/reverse_proxy/default.conf"
 DIR_XRAY="/usr/local/etc/xray/"
 
-SCRIPT_URL="https://raw.githubusercontent.com/cortez24rus/reverse_proxy/refs/heads/main/config_templates/server_raw.sh?token=GHSAT0AAAAAAC6C2BUANLUKODAXDX66T5Y6Z52FJ5Q"
+SCRIPT_URL="https://raw.githubusercontent.com/cortez24rus/xui-reverse-proxy/refs/heads/main/reverse_proxy.sh"
+SERVER_CONFIG_URL="https://raw.githubusercontent.com/cortez24rus/reverse_proxy/refs/heads/main/config_templates/server_raw.sh?token=GHSAT0AAAAAAC6C2BUANLUKODAXDX66T5Y6Z52FJ5Q"
 
 ###################################
 ### Initialization and Declarations
@@ -1667,22 +1668,22 @@ nginx_setup() {
 ### Функция для генерации UUID
 ###################################
 generate_uuids() {
-    local xray_uuid=$(cat /proc/sys/kernel/random/uuid)
-    local lua_uuid=${xray_uuid//-/}  # Удаляем все "-"
-    echo "$xray_uuid $lua_uuid"
+    local XRAY_UUID=$(cat /proc/sys/kernel/random/uuid)
+    local LUA_UUID=${xray_uuid//-/}  # Удаляем все "-"
+    echo "$XRAY_UUID $LUA_UUID"
 }
 
 ###################################
 ### AUTH LUA
 ###################################
 auth_lua() {
-  read xray_uuid lua_uuid < <(generate_uuids)
-  read placebo_xray_uuid placebo_lua_uuid < <(generate_uuids)
+  read XRAY_UUID LUA_UUID < <(generate_uuids)
+  read PLACEBO_XRAY_UUID PLACEBO_LUA_UUID < <(generate_uuids)
   
   cat > /etc/haproxy/.auth.lua <<EOF
 local passwords = {
-  ["${lua_uuid}"] = true,
-  ["${placebo_lua_uuid}"] = true		-- placebo_lua_uuid
+  ["${LUA_UUID}"] = true,
+  ["${PLACEBO_LUA_UUID}"] = true		-- PLACEBO_LUA_UUID
 }
 
 function vless_auth(txn)
@@ -1716,7 +1717,7 @@ haproxy_setup() {
   info " $(text 45) "
   auth_lua
 
-  mkdir /etc/haproxy/certs
+  mkdir -p /etc/haproxy/certs
   cat /etc/letsencrypt/live/${DOMAIN}/fullchain.pem /etc/letsencrypt/live/${DOMAIN}/privkey.pem > /etc/haproxy/certs/${DOMAIN}.pem
 
   cat > /etc/haproxy/haproxy.cfg <<EOF
@@ -1806,13 +1807,14 @@ install_xray() {
 
   unzip -o "${DIR_REVERSE_PROXY}Xray-linux-64.*" -d "${DIR_XRAY}"
   rm -f ${DIR_REVERSE_PROXY}Xray-linux-64.*
-  ln -sf ${DIR_XRAY}xray /usr/local/bin/xray/xray
+  ln -sf ${DIR_XRAY}xray /usr/local/bin/xray
 
-  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -P "${DIR_REVERSE_PROXY}" "https://github.com/XTLS/Xray-core/releases/download/v${VERSION_XRAY}/Xray-linux-64.zip"; do
-    warning " $(text 38) "
+  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -O "${DIR_XRAY}config.json" "${SERVER_CONFIG_URL}"; do
+    echo "Ошибка при скачивании, повтор через 3 секунды..."
     sleep 3
   done
 
+  sed -i "s/uuid_templates/${XRAY_UUID}/g" "${DIR_XRAY}config.json"
 }
 
 ###################################
@@ -1827,7 +1829,7 @@ After=network.target nss-lookup.target
 
 [Service]
 User=root
-ExecStart=/usr/local/bin/xray run -config /usr/local/etc/xray/config.json
+ExecStart=/usr/local/etc/xray/xray run -config /usr/local/etc/xray/config.json
 Restart=on-failure
 RestartPreventExitStatus=23
 LimitNPROC=10000

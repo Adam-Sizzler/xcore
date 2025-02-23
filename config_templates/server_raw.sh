@@ -77,7 +77,8 @@
             "level": 0,
             "id": "uuid_templates"
           }
-        ]
+        ],
+        "decryption": "none"
       },
       "streamSettings": {
         "network": "tcp",
