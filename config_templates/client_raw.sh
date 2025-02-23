@@ -147,7 +147,7 @@
             "users": [
               {
                 "encryption": "none",
-                "id": "b1b8346c-83e1-40aa-883c-d160bf7dcb3f",
+                "id": "uuid_templates",
                 "level": 8
               }
             ]

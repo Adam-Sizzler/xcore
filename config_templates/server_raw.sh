@@ -127,7 +127,7 @@
       "tag": "IPv4",
       "protocol": "freedom",
       "settings": {
-        "domainStrategy": "UseIPv4"
+        "domainStrategy": "ForceIPv4"
       }
     },
     {
