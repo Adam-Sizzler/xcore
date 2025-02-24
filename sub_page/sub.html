@@ -24,7 +24,7 @@
 
         function openTrojanUrl() {
             var name = document.getElementById("nameInput").value.trim();
-            var baseUrl = "sing-box://import-remote-profile/?url=https://DOMAIN/SUB_PATH/";
+            var baseUrl = "sing-box://import-remote-profile/?url=https://DOMAIN/SUB_JSON_PATH/";
             var fullUrl = baseUrl + encodeURIComponent(name) + "_raw_client.json";
             window.open(fullUrl);
         }

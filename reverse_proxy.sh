@@ -773,15 +773,6 @@ validate_path() {
       SHELLBOX)
         reading " $(text 24) " PATH_VALUE
         ;;
-      ADGUARDPATH)
-        reading " $(text 25) " PATH_VALUE
-        ;;
-      WEB_BASE_PATH)
-        reading " $(text 26) " PATH_VALUE
-        ;;
-      SUB_PATH)
-        reading " $(text 27) " PATH_VALUE
-        ;;
       SUB_JSON_PATH)
         reading " $(text 28) " PATH_VALUE
         ;;
@@ -808,15 +799,6 @@ validate_path() {
       ;;
     SHELLBOX)
       export SHELLBOX="$ESCAPED_PATH"
-      ;;
-    ADGUARDPATH)
-      export ADGUARDPATH="$ESCAPED_PATH"
-      ;;
-    WEB_BASE_PATH)
-      export WEB_BASE_PATH="$ESCAPED_PATH"
-      ;;
-    SUB_PATH)
-      export SUB_PATH="$ESCAPED_PATH"
       ;;
     SUB_JSON_PATH)
       export SUB_JSON_PATH="$ESCAPED_PATH"
@@ -882,7 +864,7 @@ data_entry() {
 
   tilda "$(text 10)"
 
-  choise_dns
+#  choise_dns
 
   generate_path_cdn
 
