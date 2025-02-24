@@ -1,9 +1,10 @@
 #!/bin/bash
 
-TARGET_DIR="/usr/local/reverse_proxy/repo"
-mkdir -p "$TARGET_DIR"
+REPO_URL="https://github.com/cortez24rus/reverse_proxy.git"
+DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
 
-git clone https://github.com/cortez24rus/reverse_proxy.git "$TARGET_DIR"
-chmod +x "$TARGET_DIR/reverse_proxy.sh"
+mkdir -p "${DIR_REVERSE_PROXY}repo/"
+git clone $REPO_URL "${DIR_REVERSE_PROXY}repo/"
 
-bash "$TARGET_DIR/reverse_proxy.sh"
+chmod +x "${DIR_REVERSE_PROXY}repo/reverse_proxy.sh"
+ln -sf ${DIR_REVERSE_PROXY}repo/reverse_proxy.sh /usr/local/bin/reverse_proxy

@@ -333,11 +333,11 @@ show_help() {
 update_reverse_proxy() {
   info "Script update and integration."
   
-  mkdir -p "${DIR_REVERSE_PROXY}/repo"
-  git clone $REPO_URL "${DIR_REVERSE_PROXY}/repo/"
+  mkdir -p "${DIR_REVERSE_PROXY}repo/"
+  git clone $REPO_URL "${DIR_REVERSE_PROXY}repo/"
   
-  ln -sf ${DIR_REVERSE_PROXY}/repo/reverse_proxy.sh /usr/local/bin/reverse_proxy
-  chmod +x "${DIR_REVERSE_PROXY}/repo/reverse_proxy.sh"
+  chmod +x "${DIR_REVERSE_PROXY}repo/reverse_proxy.sh"
+  ln -sf ${DIR_REVERSE_PROXY}repo/reverse_proxy.sh /usr/local/bin/reverse_proxy
 
   CURRENT_VERSION=$(wget -qO- "${DIR_REVERSE_PROXY}/repo/reverse_proxy.sh" | grep -E "^\s*VERSION_MANAGER=" | cut -d'=' -f2)
   warning "Script version: $CURRENT_VERSION"
