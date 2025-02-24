@@ -279,8 +279,8 @@ show_help() {
   echo "Usage: reverse_proxy [-u|--utils <true|false>] [-d|--dns <true|false>] [-a|--addu <true|false>]"
   echo "         [-r|--autoupd <true|false>] [-b|--bbr <true|false>] [-i|--ipv6 <true|false>] [-w|--warp <true|false>]"
   echo "         [-c|--cert <true|false>] [-m|--mon <true|false>] [-l|--shell <true|false>] [-n|--nginx <true|false>]"
-  echo "         [-p|--panel <true|false>] [--custom <true|false>] [-f|--firewall <true|false>] [-s|--ssh <true|false>]"
-  echo "         [-t|--tgbot <true|false>] [-g|--generate <true|false>] [-x|--skip-check <true|false>] [-o|--subdomain <true|false>]"
+  echo "         [-p|--xcore <true|false>] [--custom <true|false>] [-f|--firewall <true|false>] [-s|--ssh <true|false>]"
+  echo "         [-t|--tgbot <true|false>] [-g|--generate <true|false>] [-o|--subdomain <true|false>]"
   echo "         [--update] [-h|--help]"
   echo
   echo "  -u, --utils <true|false>       Additional utilities                             (default: ${defaults[utils]})"
@@ -305,8 +305,8 @@ show_help() {
   echo "                                 Установка Shell In A Box"
   echo "  -n, --nginx <true|false>       NGINX installation                               (default: ${defaults[nginx]})"
   echo "                                 Установка NGINX"
-  echo "  -p, --panel <true|false>       Panel installation for user management           (default: ${defaults[panel]})"
-  echo "                                 Установка панели для управления пользователями"
+  echo "  -p, --xcore <true|false>       Installing the Xray kernel                       (default: ${defaults[xcore]})"
+  echo "                                 Установка ядра Xray"
   echo "      --custom <true|false>      Custom JSON subscription                         (default: ${defaults[custom]})"
   echo "                                 Кастомная JSON-подписка"  
   echo "  -f, --firewall <true|false>    Firewall configuration                           (default: ${defaults[firewall]})"
@@ -317,8 +317,6 @@ show_help() {
   echo "                                 Интеграция Telegram бота"
   echo "  -g, --generate <true|false>    Generate a random string for configuration       (default: ${defaults[generate]})"
   echo "                                 Генерация случайных путей для конфигурации"
-  echo "  -x, --skip-check <true|false>  Disable the check functionality                  (default: ${defaults[skip-check]})"
-  echo "                                 Отключение проверки"
   echo "  -o, --subdomain <true|false>   Support for subdomains                           (default: ${defaults[subdomain]})"
   echo "                                 Поддержка субдоменов"
   echo "      --update                   Update version of Reverse-proxy manager (Version on github: ${VERSION_MANAGER})"
@@ -372,13 +370,12 @@ read_defaults_from_file() {
     defaults[mon]=false
     defaults[shell]=false
     defaults[nginx]=true
-    defaults[panel]=true
+    defaults[xcore]=true
     defaults[custom]=true
     defaults[firewall]=true
     defaults[ssh]=true
     defaults[tgbot]=false
     defaults[generate]=true
-    defaults[skip-check]=false
     defaults[subdomain]=false
   fi
 }
@@ -399,13 +396,12 @@ defaults[cert]=false
 defaults[mon]=false
 defaults[shell]=false
 defaults[nginx]=true
-defaults[panel]=true
+defaults[xcore]=true
 defaults[custom]=true
 defaults[firewall]=false
 defaults[ssh]=false
 defaults[tgbot]=false
 defaults[generate]=true
-defaults[skip-check]=false
 defaults[subdomain]=false
 EOF
 }
@@ -453,19 +449,18 @@ declare -A arg_map=(
   [-m]=mon        [--mon]=mon
   [-l]=shell      [--shell]=shell
   [-n]=nginx      [--nginx]=nginx
-  [-p]=panel      [--panel]=panel
+  [-x]=xcore      [--xcore]=xcore
                   [--custom]=custom
   [-f]=firewall   [--firewall]=firewall
   [-s]=ssh        [--ssh]=ssh
   [-t]=tgbot      [--tgbot]=tgbot
   [-g]=generate   [--generate]=generate
-  [-x]=skip-check [--skip-check]=skip-check
   [-o]=subdomain  [--subdomain]=subdomain
 )
 
 parse_args() {
   local opts
-  opts=$(getopt -o hu:d:a:r:b:i:w:c:m:l:n:p:f:s:t:g:x:o --long utils:,dns:,addu:,autoupd:,bbr:,ipv6:,warp:,cert:,mon:,shell:,nginx:,panel:,custom:,firewall:,ssh:,tgbot:,generate:,skip-check:,subdomain:,update,depers,help -- "$@")
+  opts=$(getopt -o hu:d:a:r:b:i:w:c:m:l:n:x:f:s:t:g:o --long utils:,dns:,addu:,autoupd:,bbr:,ipv6:,warp:,cert:,mon:,shell:,nginx:,xcore:,custom:,firewall:,ssh:,tgbot:,generate:,subdomain:,update,depers,help -- "$@")
 
   if [[ $? -ne 0 ]]; then
     return 1
@@ -807,46 +802,6 @@ validate_path() {
 }
 
 ###################################
-### DNS Selection
-###################################
-choise_dns () {
-  while true; do
-    hint " $(text 31) \n" && reading " $(text 1) " CHOISE_DNS
-    case $CHOISE_DNS in
-      1)
-        info " $(text 32) "
-        break
-        ;;
-      2)
-        info " $(text 25) "
-        if [[ ${args[generate]} == "true" ]]; then
-          ADGUARDPATH=$(eval ${generate[path]})
-        else
-          echo
-          tilda "$(text 10)"
-          validate_path ADGUARDPATH
-        fi
-        echo
-        break
-        ;;
-      *)
-        info " $(text 33) "
-        ;;
-    esac
-  done
-}
-
-###################################
-### Generating paths for cdn
-###################################
-generate_path_cdn(){
-  CDNGRPC=$(eval ${generate[path]})
-  CDNXHTTP=$(eval ${generate[path]})
-  CDNHTTPU=$(eval ${generate[path]})
-  CDNWS=$(eval ${generate[path]})
-}
-
-###################################
 ### Data entry
 ###################################
 data_entry() {
@@ -864,19 +819,9 @@ data_entry() {
 
   tilda "$(text 10)"
 
-#  choise_dns
-
-  generate_path_cdn
-
   if [[ ${args[generate]} == "true" ]]; then
-    WEB_BASE_PATH=$(eval ${generate[path]})
-    SUB_PATH=$(eval ${generate[path]})
     SUB_JSON_PATH=$(eval ${generate[path]})
   else
-    echo
-    validate_path WEB_BASE_PATH
-    echo
-    validate_path SUB_PATH
     echo
     validate_path SUB_JSON_PATH
   fi
@@ -1043,109 +988,7 @@ installation_of_utilities() {
   esac
 
   nginx_gpg
-  ${PACKAGE_INSTALL[int]} systemd-resolved
   tilda "$(text 10)"
-}
-
-###################################
-### DNS Systemd-resolved
-###################################
-dns_systemd_resolved() {
-  tee /etc/systemd/resolved.conf <<EOF
-[Resolve]
-DNS=1.1.1.1 8.8.8.8 8.8.4.4
-#FallbackDNS=
-Domains=~.
-DNSSEC=yes
-DNSOverTLS=yes
-EOF
-  systemctl restart systemd-resolved.service
-}
-
-###################################
-### DNS Adguardhome
-###################################
-dns_adguard_home() {
-  rm -rf AdGuardHome_*
-  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz; do
-    warning " $(text 38) "
-    sleep 3
-  done
-  tar -zxvf AdGuardHome_linux_amd64.tar.gz
-
-  AdGuardHome/AdGuardHome -s install
-  HASH=$(htpasswd -B -C 10 -n -b ${USERNAME} ${PASSWORD} | cut -d ":" -f 2)
-
-  rm -f AdGuardHome/AdGuardHome.yaml
-  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused "https://github.com/cortez24rus/xui-reverse-proxy/raw/refs/heads/main/adh/AdGuardHome.yaml" -O AdGuardHome/AdGuardHome.yaml; do
-    warning " $(text 38) "
-    sleep 3
-  done
-
-  sleep 1
-  sed -i \
-    -e "s|username|${USERNAME}|g" \
-    -e "s|hash|${HASH}|g" \
-    AdGuardHome/AdGuardHome.yaml
-
-  AdGuardHome/AdGuardHome -s restart
-}
-
-###################################
-### Dns systemd for adguard
-###################################
-dns_systemd_resolved_for_adguard() {
-  tee /etc/systemd/resolved.conf <<EOF
-[Resolve]
-DNS=127.0.0.1
-#FallbackDNS=
-#Domains=
-#DNSSEC=no
-DNSOverTLS=no
-DNSStubListener=no
-EOF
-  systemctl restart systemd-resolved.service
-}
-
-###################################
-### DNS menu
-###################################
-dns_encryption() {
-  info " $(text 37) "
-  dns_systemd_resolved
-  case $CHOISE_DNS in
-    1)
-      COMMENT_AGH=""
-      tilda "$(text 10)"
-      ;;
-
-    2)
-      mkdir -p /etc/nginx/locations/
-
-      cat > /etc/nginx/locations/adguard.conf <<EOF
-location /${ADGUARDPATH}/ {
-  if (\$hack = 1) {return 404;}
-  proxy_set_header Host \$host;
-  proxy_set_header X-Real-IP \$remote_addr;
-  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-  proxy_set_header X-Real-IP \$remote_addr;
-  proxy_set_header Range \$http_range;
-  proxy_set_header If-Range \$http_if_range;
-  proxy_redirect /login.html /${ADGUARDPATH}/login.html;
-  proxy_pass http://127.0.0.1:8081/;
-  break;
-}
-EOF
-      dns_adguard_home
-      dns_systemd_resolved_for_adguard
-      tilda "$(text 10)"
-      ;;
-
-    *)
-      warning " $(text 33)"
-      dns_encryption
-      ;;
-  esac
 }
 
 ###################################
@@ -1479,22 +1322,29 @@ random_site() {
 ###################################
 nginx_conf() {
   cat > /etc/nginx/nginx.conf <<EOF
+# Global settings
 user                                   ${USERNGINX};
-pid                                    /var/run/nginx.pid;
+pid                                    /run/nginx.pid;
 worker_processes                       auto;
 worker_rlimit_nofile                   65535;
 error_log                              /var/log/nginx/error.log;
 include                                /etc/nginx/modules-enabled/*.conf;
+
+# Events
 events {
   multi_accept                         on;
   worker_connections                   1024;
 }
 
+# HTTP settings
 http {
+  # Request mapping
   map \$request_uri \$cleaned_request_uri {
     default \$request_uri;
     "~^(.*?)(\?x_padding=[^ ]*)\$" \$1;
   }
+
+  # Logging
   log_format json_analytics escape=json '{'
     '\$time_local, '
     '\$http_x_forwarded_for, '
@@ -1505,34 +1355,50 @@ http {
     '\$cleaned_request_uri, '
     '\$http_referer, '
     '}';
+
+  # Real IP
   set_real_ip_from                     127.0.0.1;
   real_ip_header                       X-Forwarded-For;
   real_ip_recursive                    on;
-  access_log                           /var/log/nginx/access.log json_analytics;
+
+  # Performance
   sendfile                             on;
   tcp_nopush                           on;
   tcp_nodelay                          on;
+
+  # Security
   server_tokens                        off;
   log_not_found                        off;
+
+  # Hash sizes
   types_hash_max_size                  2048;
   types_hash_bucket_size               64;
+
+  # Client
   client_max_body_size                 16M;
+
+  # Keepalive
   keepalive_timeout                    75s;
   keepalive_requests                   1000;
+
+  # Timeouts
   reset_timedout_connection            on;
+
+  # MIME types
   include                              /etc/nginx/mime.types;
   default_type                         application/octet-stream;
-  ssl_session_timeout                  1d;
-  ssl_session_cache                    shared:SSL:1m;
-  ssl_session_tickets                  off;
-  ssl_prefer_server_ciphers            on;
-  ssl_protocols                        TLSv1.2 TLSv1.3;
-  ssl_ciphers                          TLS13_AES_128_GCM_SHA256:TLS13_AES_256_GCM_SHA384:TLS13_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305;
-  ssl_stapling                         on;
-  ssl_stapling_verify                  on;
+
+  # DNS resolver
   resolver                             127.0.0.1 valid=60s;
   resolver_timeout                     2s;
+
+  # gzip
   gzip                                 on;
+  gzip_vary                            on;
+  gzip_proxied                         any;
+  gzip_comp_level                      6;
+  gzip_types                           text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml;
+
   add_header X-XSS-Protection          "0" always;
   add_header X-Content-Type-Options    "nosniff" always;
   add_header Referrer-Policy           "no-referrer-when-downgrade" always;
@@ -1540,10 +1406,9 @@ http {
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
   add_header X-Frame-Options           "SAMEORIGIN";
   proxy_hide_header                    X-Powered-By;
+
+  # Include server
   include                              /etc/nginx/conf.d/*.conf;
-}
-stream {
-  include /etc/nginx/stream-enabled/stream.conf;
 }
 EOF
 }
@@ -1555,21 +1420,11 @@ local_conf() {
   cat > /etc/nginx/conf.d/local.conf <<EOF
 server {
   listen                               36077;
-  http2                                on;
-  http3                                on;
   server_name                          _;
 
   # Site
   index index.html index.htm index.php index.nginx-debian.html;
   root /var/www/html/;
-
-  if (\$host !~* ^(.+\.)?${DOMAIN}\$ ){return 444;}
-  if (\$scheme ~* https) {set \$safe 1;}
-  if (\$ssl_server_name !~* ^(.+\.)?${DOMAIN}\$ ) {set \$safe "\${safe}0"; }
-  if (\$safe = 10){return 444;}
-  if (\$request_uri ~ "(\"|'|\`|~|,|:|--|;|%|\\$|&&|\?\?|0x00|0X00|\||\\|\{|\}|\[|\]|<|>|\.\.\.|\.\.\/|\/\/\/)"){set \$hack 1;}
-  error_page 400 402 403 500 501 502 503 504 =404 /404;
-  proxy_intercept_errors on;
 
   # Enable locations
   include /etc/nginx/locations/*.conf;
@@ -1577,36 +1432,27 @@ server {
 EOF
 }
 
-location_sub() {
-  cat > /etc/nginx/locations/sub.conf <<EOF
-# SUB
-location /${SUB_PATH} {
-  if (\$hack = 1) {return 404;}
-  proxy_redirect off;
-  proxy_set_header Host \$host;
-  proxy_set_header X-Real-IP \$remote_addr;
-  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-  proxy_pass http://127.0.0.1:36074/${SUB_PATH};
-  break;
+###################################
+### Hidden_files
+###################################
+location_hidden_files() {
+  cat > /etc/nginx/locations/hidden_files.conf <<EOF
+# . hidden_files.conf
+location ~ /\.(?!well-known) {
+  deny all;
 }
 EOF
 }
 
-location_xhttp() {
-  cat > /etc/nginx/locations/xhttp.conf <<EOF
-# XHTTP
-location /${CDNXHTTP} {
-  grpc_pass grpc://unix:/dev/shm/uds2023.sock;
-  grpc_buffer_size         16k;
-  grpc_socket_keepalive    on;
-  grpc_read_timeout        1h;
-  grpc_send_timeout        1h;
-  grpc_set_header Connection         "";
-  grpc_set_header X-Forwarded-For    \$proxy_add_x_forwarded_for;
-  grpc_set_header X-Forwarded-Proto  \$scheme;
-  grpc_set_header X-Forwarded-Port   \$server_port;
-  grpc_set_header Host               \$host;
-  grpc_set_header X-Forwarded-Host   \$host;
+###################################
+### Sub page
+###################################
+location_sub_page() {
+  cat > /etc/nginx/locations/sub_page.conf <<EOF
+# Subsciption
+location ~ ^/${SUBPATH} {
+  default_type application/json;
+  root /var/www;
 }
 EOF
 }
@@ -1617,7 +1463,6 @@ EOF
 nginx_setup() {
   info " $(text 45) "
 
-  mkdir -p /etc/nginx/conf.d/
   mkdir -p /etc/nginx/locations/
   rm -rf /etc/nginx/conf.d/default.conf
   touch /etc/nginx/.htpasswd
@@ -1636,8 +1481,8 @@ nginx_setup() {
 
   nginx_conf
   local_conf
-  location_sub
-  location_xhttp
+  location_hidden_files
+  location_sub_page  
 
   systemctl daemon-reload
   systemctl restart nginx
@@ -1779,7 +1624,7 @@ EOF
 ###################################
 ### Xray installation
 ###################################
-install_xray() {
+xray_setup() {
   mkdir -p "${DIR_XRAY}"
 
   while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -P "${DIR_REVERSE_PROXY}" "https://github.com/XTLS/Xray-core/releases/download/v${VERSION_XRAY}/Xray-linux-64.zip"; do
@@ -1789,8 +1634,12 @@ install_xray() {
 
   unzip -o "${DIR_REVERSE_PROXY}Xray-linux-64.*" -d "${DIR_XRAY}"
   rm -f ${DIR_REVERSE_PROXY}Xray-linux-64.*
-  ln -sf ${DIR_XRAY}xray /usr/local/bin/xray
+}
 
+###################################
+### Xray config
+###################################
+xray_config() {
   while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -O "${DIR_XRAY}config.json" "${SERVER_CONFIG_URL}"; do
     echo "Ошибка при скачивании, повтор через 3 секунды..."
     sleep 3
@@ -1829,16 +1678,26 @@ EOF
 ###################################
 ### Xray settings
 ###################################
-setting_xray() {
+xray_server_conf() {
   info " $(text 46) "
 
-  install_xray
+  xray_setup
+  xray_config
   xray_service
-
 
   tilda "$(text 10)"
 }
 
+###################################
+### Xray settings
+###################################
+xray_client_conf() {
+  info " $(text 46) "
+
+
+
+  tilda "$(text 10)"
+}
 
 ###################################
 ### BACKUP DIRECTORIES
@@ -2216,8 +2075,8 @@ main() {
   log_entry
   read_defaults_from_file
   parse_args "$@" || show_help
-  [[ ${args[skip-check]} == "false" ]] && check_root
-  [[ ${args[skip-check]} == "false" ]] && check_ip
+  check_root
+  check_ip
   check_operating_system
   echo
   select_language
@@ -2266,8 +2125,9 @@ main() {
         update_reverse_proxy
         random_site
         [[ ${args[nginx]} == "true" ]] && nginx_setup
-        [[ ${args[nginx]} == "true" ]] && haproxy_setup
-        [[ ${args[panel]} == "true" ]] && install_xray
+        [[ ${args[haproxy]} == "true" ]] && haproxy_setup
+        [[ ${args[xcore]} == "true" ]] && xray_server_conf
+        [[ ${args[xcore]} == "true" ]] && xray_client_conf
         write_defaults_to_file
         rotation_and_archiving
         [[ ${args[firewall]} == "true" ]] && enabling_security
