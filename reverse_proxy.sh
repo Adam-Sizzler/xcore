@@ -11,7 +11,7 @@ LANG_FILE="/usr/local/reverse_proxy/lang.conf"
 DEFAULT_FLAGS="/usr/local/reverse_proxy/default.conf"
 DIR_XRAY="/usr/local/etc/xray/"
 
-SCRIPT_URL="https://raw.githubusercontent.com/cortez24rus/xui-reverse-proxy/refs/heads/main/reverse_proxy.sh"
+REPO_URL="https://github.com/cortez24rus/reverse_proxy.git"
 SERVER_CONFIG_URL="https://raw.githubusercontent.com/cortez24rus/reverse_proxy/refs/heads/main/config_templates/server_raw.sh?token=GHSAT0AAAAAAC6C2BUANLUKODAXDX66T5Y6Z52FJ5Q"
 
 ###################################
@@ -332,16 +332,18 @@ show_help() {
 ###################################
 update_reverse_proxy() {
   info "Script update and integration."
+  
+  mkdir -p "${DIR_REVERSE_PROXY}/repo"
+  git clone $REPO_URL "${DIR_REVERSE_PROXY}/repo/"
+  
+  ln -sf ${DIR_REVERSE_PROXY}/repo/reverse_proxy.sh /usr/local/bin/reverse_proxy
+  chmod +x "${DIR_REVERSE_PROXY}/repo/reverse_proxy.sh"
 
-  CURRENT_VERSION=$(wget -qO- $SCRIPT_URL | grep -E "^\s*VERSION_MANAGER=" | cut -d'=' -f2)
+  CURRENT_VERSION=$(wget -qO- "${DIR_REVERSE_PROXY}/repo/reverse_proxy.sh" | grep -E "^\s*VERSION_MANAGER=" | cut -d'=' -f2)
   warning "Script version: $CURRENT_VERSION"
-  UPDATE_SCRIPT="${DIR_REVERSE_PROXY}reverse_proxy"
-  wget -O $UPDATE_SCRIPT $SCRIPT_URL
-  ln -sf $UPDATE_SCRIPT /usr/local/bin/reverse_proxy
-  chmod +x "$UPDATE_SCRIPT"
 
   crontab -l | grep -v -- "--update" | crontab -
-  add_cron_rule "0 0 * * * /usr/local/reverse_proxy/reverse_proxy --update"
+  add_cron_rule "0 0 * * * /usr/local/reverse_proxy/repo/reverse_proxy --update"
 
   tilda "\n|-----------------------------------------------------------------------------|\n"
 }
@@ -1691,7 +1693,7 @@ xray_server_conf() {
 ###################################
 ### Xray settings
 ###################################
-xray_client_conf() {
+xray_client_sub_conf() {
   info " $(text 46) "
 
 
