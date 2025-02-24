@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>SSB</title>
+    <title>XRP</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script>
         function getParameterByName(name) {
@@ -22,11 +22,20 @@
             }
         }
 
-        function openTrojanUrl() {
+        function copyVlessUrl() {
             var name = document.getElementById("nameInput").value.trim();
-            var baseUrl = "sing-box://import-remote-profile/?url=https://DOMAIN/SUB_JSON_PATH/";
-            var fullUrl = baseUrl + encodeURIComponent(name) + "_raw_client.json";
-            window.open(fullUrl);
+            var baseUrl = "https://DOMAIN_TEMP/SUB_JSON_PATH_TEMP/client/";
+            var fullUrl = baseUrl + encodeURIComponent(name) + "_vl_raw.json";
+
+            // Создаем временный элемент для копирования
+            var tempInput = document.createElement("input");
+            tempInput.value = fullUrl;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy"); // Копируем в буфер обмена
+            document.body.removeChild(tempInput);
+
+            alert("Ссылка на подписку пользователя \"" + name + "\" скопирована в буфер обмена.");
         }
 
         document.addEventListener("DOMContentLoaded", fillNameInput);
@@ -97,9 +106,9 @@
     <h2 style="line-height: 2.5em;">1. Скачать приложение</h2>
     <h3>- Android и iOS -</h3>
     <button class="button"
-        onclick="window.open('https://play.google.com/store/apps/details?id=io.nekohasekai.sfa', '_blank')">Android</button>
+        onclick="window.open('https://play.google.com/store/apps/details?id=com.v2ray.ang', '_blank')">Android</button>
     <button class="button"
-        onclick="window.open('https://apps.apple.com/us/app/sing-box-vt/id6673731168', '_blank')">iOS</button>
+        onclick="window.open('https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690', '_blank')">iOS</button>
     <br><br>
     <h3>- Windows -</h3>
     <button class="button"
@@ -120,7 +129,7 @@
     <p>
     <form onsubmit="return false;">
         <input type="text" placeholder="Введите имя пользователя..." id="nameInput" required><br><br>
-        <button class="button" onclick="openTrojanUrl()">Открыть Trojan URL</button>
+        <button class="button" onclick="copyVlessUrl()">Скопировать Vless URL</button>
     </form>
     </p>
     <br>

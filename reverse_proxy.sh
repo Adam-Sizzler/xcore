@@ -1550,68 +1550,68 @@ haproxy_setup() {
 
   cat > /etc/haproxy/haproxy.cfg <<EOF
 global
-        # Uncomment to enable system logging
-        # log /dev/log local0
-        # log /dev/log local1 notice
-        log /dev/log local2 warning
-        lua-load /etc/haproxy/.auth.lua
-        chroot /var/lib/haproxy
-        stats socket /run/haproxy/admin.sock mode 660 level admin
-        stats timeout 30s
-        user haproxy
-        group haproxy
-        daemon
+  # Uncomment to enable system logging
+  # log /dev/log local0
+  # log /dev/log local1 notice
+  log /dev/log local2 warning
+  lua-load /etc/haproxy/.auth.lua
+  chroot /var/lib/haproxy
+  stats socket /run/haproxy/admin.sock mode 660 level admin
+  stats timeout 30s
+  user haproxy
+  group haproxy
+  daemon
 
-        # Mozilla Intermediate
-        # ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
-        # ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
-        # ssl-default-bind-options prefer-client-ciphers no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
-        # ssl-default-server-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
-        # ssl-default-server-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
-        # ssl-default-server-options no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
+  # Mozilla Intermediate
+  # ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
+  # ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+  # ssl-default-bind-options prefer-client-ciphers no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
+  # ssl-default-server-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
+  # ssl-default-server-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+  # ssl-default-server-options no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
 
-        # Mozilla Modern
-        ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
-        ssl-default-bind-options prefer-client-ciphers no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
-        ssl-default-server-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
-        ssl-default-server-options no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
+  # Mozilla Modern
+  ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+  ssl-default-bind-options prefer-client-ciphers no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
+  ssl-default-server-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+  ssl-default-server-options no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
 
-        # You must first generate DH parameters - [ openssl dhparam -out /etc/haproxy/dhparam.pem 2048 ]
-        ssl-dh-param-file /etc/haproxy/dhparam.pem
+  # You must first generate DH parameters - [ openssl dhparam -out /etc/haproxy/dhparam.pem 2048 ]
+  ssl-dh-param-file /etc/haproxy/dhparam.pem
 
 defaults
-        mode http
-        log global
-        option tcplog
-        option  dontlognull
-        timeout connect 5000
-        timeout client  50000
-        timeout server  50000
+  mode http
+  log global
+  option tcplog
+  option  dontlognull
+  timeout connect 5000
+  timeout client  50000
+  timeout server  50000
 
 frontend haproxy-tls
-        mode tcp
-        timeout client 1h
-        bind :::443 v4v6 ssl crt /etc/haproxy/certs/swe.theleetworld.ru.pem alpn h2,http/1.1
-        acl host_ip hdr(host) -i ${IP4}
-        tcp-request content reject if host_ip
-        tcp-request inspect-delay 5s
-        tcp-request content accept if { req_ssl_hello_type 1 }
-        use_backend http-panel if { path /${WEB_BASE_PATH} }
-        use_backend %[lua.vless_auth]
-        default_backend http
+  mode tcp
+  timeout client 1h
+  bind :::443 v4v6 ssl crt /etc/haproxy/certs/swe.theleetworld.ru.pem alpn h2,http/1.1
+  acl host_ip hdr(host) -i ${IP4}
+  tcp-request content reject if host_ip
+  tcp-request inspect-delay 5s
+  tcp-request content accept if { req_ssl_hello_type 1 }
+  use_backend http-sub if { path /${SUB_JSON_PATH} } || { path_beg /${SUB_JSON_PATH}/ }
+  use_backend %[lua.vless_auth]
+  default_backend http
 
 backend vless
-        mode tcp
-        timeout server 1h
-        server xray 127.0.0.1:10550
+  mode tcp
+  timeout server 1h
+  server xray-core 127.0.0.1:36066
 
 backend http
-        mode http
-        server nginx 127.0.0.1:36077
+  mode http
+  server web-nginx 127.0.0.1:36078
 
-backend http-panel
-        mode http
-        server panel 127.0.0.1:36075
+backend http-sub
+  mode http
+  server sub-nginx 127.0.0.1:36078
 
 EOF
 
@@ -1641,12 +1641,12 @@ xray_setup() {
 ### Xray config
 ###################################
 xray_config() {
-  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -O "${DIR_XRAY}config.json" "${SERVER_CONFIG_URL}"; do
-    echo "Ошибка при скачивании, повтор через 3 секунды..."
-    sleep 3
-  done
+  cp -f ${DIR_REVERSE_PROXY}repo/сonf_template/server_raw.sh ${DIR_XRAY}config.json
 
-  sed -i "s/uuid_templates/${XRAY_UUID}/g" "${DIR_XRAY}config.json"
+  sed -i \
+    -e "s/USERNAME_TEMP/${USERNAME}/g" \
+    -e "s/UUID_TEMP/${XRAY_UUID}/g" \
+    "${DIR_XRAY}config.json"
 }
 
 ###################################
@@ -1690,12 +1690,36 @@ xray_server_conf() {
 }
 
 ###################################
+### Web sub page
+###################################
+web_sub_page() {
+  mkdir -p /var/www/${SUB_JSON_PATH}/client/
+  cp -r ${DIR_REVERSE_PROXY}repo/sub_page/* /var/www/${SUB_JSON_PATH}/
+
+  sed -i \
+    -e "s/DOMAIN_TEMP/${DOMAIN}/g" \
+    -e "s/SUB_JSON_PATH_TEMP/${SUB_JSON_PATH}/g" \
+    "/var/www/${SUB_JSON_PATH}/sub.html"
+}
+
+web_client_conf() {
+  cp -r ${DIR_REVERSE_PROXY}repo/conf_template/client_raw.sh /var/www/${SUB_JSON_PATH}/client/${USERNAME}_vl_raw.json
+
+  sed -i \
+    -e "s/DOMAIN_TEMP/${DOMAIN}/g" \
+    -e "s/UUID_TEMP/${XRAY_UUID}/g" \
+    "/var/www/${SUB_JSON_PATH}/client/${USERNAME}_vl_raw.json"
+}
+
+
+###################################
 ### Xray settings
 ###################################
-xray_client_sub_conf() {
+xray_client_conf() {
   info " $(text 46) "
 
-
+  web_sub_page
+  web_client_conf
 
   tilda "$(text 10)"
 }
@@ -1925,7 +1949,6 @@ renew_cert() {
     check_cf_token
     issuance_of_certificates
   else
-    create_cert_backup "$NGINX_DOMAIN" "cp"
     certbot renew --force-renewal
     if [ $? -ne 0 ]; then
       return 1

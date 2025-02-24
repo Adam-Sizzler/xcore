@@ -8,6 +8,7 @@
       {
         "address": "https+local://1.1.1.1/dns-query",
         "domain": [
+          "domain:DOMAIN_TEMP",
           "geosite:category-ru",
           "geosite:yandex",
           "geosite:vk",
@@ -111,6 +112,7 @@
       },
       {
         "domain": [
+          "domain:DOMAIN_TEMP",
           "geosite:category-ru",
           "geosite:yandex",
           "geosite:vk",
@@ -244,12 +246,12 @@
       "settings": {
         "vnext": [
           {
-            "address": "DOMAIN",
+            "address": "DOMAIN_TEMP",
             "port": 443,
             "users": [
               {
                 "encryption": "none",
-                "id": "UUID_TEMPLATES",
+                "id": "UUID_TEMP",
                 "level": 8
               }
             ]

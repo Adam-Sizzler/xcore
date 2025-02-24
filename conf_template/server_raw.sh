@@ -6,7 +6,15 @@
     "loglevel": "warning",
     "maskAddress": ""
   },
-  "dns": null,
+  "dns": {
+    "queryStrategy": "ForceIPv4"
+    "servers": [
+      {
+        "address": "https://1.1.1.1/dns-query",
+        "skipFallback": false
+      }
+    ]
+  },
   "routing": {
     "domainStrategy": "AsIs",
     "rules": [
@@ -68,9 +76,9 @@
       "settings": {
         "clients": [
           {
-            "email": "USERNAME",
+            "email": "USERNAME_TEMP",
             "level": 0,
-            "id": "UUID_TEMPLATES"
+            "id": "UUID_TEMP"
           }
         ],
         "decryption": "none"
