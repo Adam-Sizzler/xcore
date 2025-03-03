@@ -2249,5 +2249,3 @@ main() {
 }
 
 main "$@"
-
-systemctl reload nginx && systemctl reload haproxy && systemctl reload xray

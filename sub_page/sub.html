@@ -143,7 +143,7 @@
     </div>
 
     <script>
-        const baseDomain = "https://DOMAIN_TEMP/SUB_JSON_PATH_TEMP/client/";
+        const baseDomain = "https://DOMAIN_TEMP/SUB_JSON_PATH_TEMP/vless_raw/";
 
         window.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
@@ -175,7 +175,7 @@
                 alert("Введите имя пользователя!");
                 return;
             }
-            const fullUrl = `${scheme}${baseDomain}${encodeURIComponent(name)}_vl_raw.json`;
+            const fullUrl = `${scheme}${baseDomain}${encodeURIComponent(name)}.json`;
             window.open(fullUrl);
         }
 
@@ -185,7 +185,7 @@
                 alert("Введите имя пользователя!");
                 return;
             }
-            const fullUrl = `${baseDomain}${encodeURIComponent(name)}_vl_raw.json`;
+            const fullUrl = `${baseDomain}${encodeURIComponent(name)}.json`;
 
             const tempInput = document.createElement("input");
             tempInput.value = fullUrl;
