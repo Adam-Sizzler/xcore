@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='1.4.3с'
+VERSION_MANAGER='0.1.2'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -633,10 +633,9 @@ check_ip() {
 ###################################
 banner_xray() {
   echo
-  echo " █░█ █░░█ ░▀░ ░░ █▀▀█ █▀▀ ▀█░█▀ █▀▀ █▀▀█ █▀▀ █▀▀ ░░ █▀▀█ █▀▀█ █▀▀█ █░█ █░░█  "
-  echo " ▄▀▄ █░░█ ▀█▀ ▀▀ █▄▄▀ █▀▀ ░█▄█░ █▀▀ █▄▄▀ ▀▀█ █▀▀ ▀▀ █░░█ █▄▄▀ █░░█ ▄▀▄ █▄▄█  "
-  echo " ▀░▀ ░▀▀▀ ▀▀▀ ░░ ▀░▀▀ ▀▀▀ ░░▀░░ ▀▀▀ ▀░▀▀ ▀▀▀ ▀▀▀ ░░ █▀▀▀ ▀░▀▀ ▀▀▀▀ ▀░▀ ▄▄▄█  "
-  echo
+  echo " █░█ ░░ █▀▀█ █▀▀ ▀█░█▀ █▀▀ █▀▀█ █▀▀ █▀▀ ░░ █▀▀█ █▀▀█ █▀▀█ █░█ █░░█  "
+  echo " ▄▀▄ ▀▀ █▄▄▀ █▀▀ ░█▄█░ █▀▀ █▄▄▀ ▀▀█ █▀▀ ▀▀ █░░█ █▄▄▀ █░░█ ▄▀▄ █▄▄█  "
+  echo " ▀░▀ ░░ ▀░▀▀ ▀▀▀ ░░▀░░ ▀▀▀ ▀░▀▀ ▀▀▀ ▀▀▀ ░░ █▀▀▀ ▀░▀▀ ▀▀▀▀ ▀░▀ ▄▄▄█  "
   echo
 }
 
@@ -1295,8 +1294,7 @@ random_site() {
       unzip -q main.zip &>/dev/null && rm -f main.zip
   fi
 
-  cd simple-web-templates-main || echo "Не удалось перейти в папку с шаблонами"
-
+  cd simple-web-templates-main
   rm -rf assets ".gitattributes" "README.md" "_config.yml"
 
   RandomHTML=$(ls -d */ | shuf -n1)  # Обновил для выбора случайного подкаталога
@@ -1306,7 +1304,7 @@ random_site() {
   if [[ -d "${RandomHTML}" && -d "/var/www/html/" ]]; then
       echo "Копируем шаблон в /var/www/html/..."
       rm -rf /var/www/html/*  # Очищаем старую папку
-      cp -a "${RandomHTML}/." /var/www/html/ || echo "Ошибка при копировании шаблона"
+      cp -a "${RandomHTML}/." /var/www/html/
   else
       echo "Ошибка при извлечении шаблона!"
   fi
@@ -1420,12 +1418,23 @@ server {
   listen                               36077;
   server_name                          _;
 
-  # Site
-  index index.html index.htm index.php index.nginx-debian.html;
-  root /var/www/html/;
-
   # Enable locations
   include /etc/nginx/locations/*.conf;
+}
+EOF
+}
+
+###################################
+### Web site
+###################################
+locatiion_root() {
+  cat > /etc/nginx/locations/local.conf <<EOF
+# Web site
+location / {
+  root /var/www/html;
+  index index.html;
+  autoindex off;
+  try_files \$uri \$uri/ =404;
 }
 EOF
 }
@@ -1494,7 +1503,7 @@ nginx_setup() {
 ###################################
 generate_uuids() {
     local XRAY_UUID=$(cat /proc/sys/kernel/random/uuid)
-    local LUA_UUID=${xray_uuid//-/}  # Удаляем все "-"
+    local LUA_UUID=${XRAY_UUID//-/}  # Удаляем все "-"
     echo "$XRAY_UUID $LUA_UUID"
 }
 
@@ -1511,6 +1520,17 @@ local passwords = {
   ["${PLACEBO_LUA_UUID}"] = true		-- PLACEBO_LUA_UUID
 }
 
+local function remove_hyphens(uuid)
+  return uuid:gsub("-", "")
+end
+
+local clean_passwords = {}
+for uuid, value in pairs(passwords) do
+  if value then
+    clean_passwords[remove_hyphens(uuid)] = true
+  end
+end
+
 function vless_auth(txn)
   local status, data = pcall(function() return txn.req:dup() end)
   if status and data then
@@ -1524,7 +1544,7 @@ function vless_auth(txn)
 
     -- Uncomment to enable logging of sniffed password hashes
     core.Info("Sniffed password: " .. hex)
-    if passwords[hex] then
+    if clean_passwords[hex] then
       return "vless"
     end
   end
@@ -1543,6 +1563,7 @@ haproxy_setup() {
   auth_lua
 
   mkdir -p /etc/haproxy/certs
+  openssl dhparam -out /etc/haproxy/dhparam.pem 2048
   cat /etc/letsencrypt/live/${DOMAIN}/fullchain.pem /etc/letsencrypt/live/${DOMAIN}/privkey.pem > /etc/haproxy/certs/${DOMAIN}.pem
 
   cat > /etc/haproxy/haproxy.cfg <<EOF
@@ -1558,14 +1579,6 @@ global
   user haproxy
   group haproxy
   daemon
-
-  # Mozilla Intermediate
-  # ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
-  # ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
-  # ssl-default-bind-options prefer-client-ciphers no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
-  # ssl-default-server-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
-  # ssl-default-server-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
-  # ssl-default-server-options no-sslv3 no-tlsv10 no-tlsv11 no-tls-tickets
 
   # Mozilla Modern
   ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
@@ -1588,27 +1601,29 @@ defaults
 frontend haproxy-tls
   mode tcp
   timeout client 1h
-  bind :::443 v4v6 ssl crt /etc/haproxy/certs/swe.theleetworld.ru.pem alpn h2,http/1.1
+  bind :::443 v4v6 ssl crt /etc/haproxy/certs/${DOMAIN}.pem alpn h2,http/1.1
   acl host_ip hdr(host) -i ${IP4}
   tcp-request content reject if host_ip
   tcp-request inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
   use_backend http-sub if { path /${SUB_JSON_PATH} } || { path_beg /${SUB_JSON_PATH}/ }
   use_backend %[lua.vless_auth]
-  default_backend http
+  default_backend main
 
 backend vless
   mode tcp
   timeout server 1h
-  server xray-core 127.0.0.1:36066
+  server xray 127.0.0.1:10550 send-proxy-v2
 
-backend http
+backend main
   mode http
-  server web-nginx 127.0.0.1:36078
+  timeout server 1h
+  server nginx 127.0.0.1:36078
 
 backend http-sub
   mode http
-  server sub-nginx 127.0.0.1:36078
+  timeout server 1h
+  server nginx 127.0.0.1:36078
 
 EOF
 
@@ -1653,11 +1668,13 @@ xray_service() {
   cat > /etc/systemd/system/xray.service <<EOF
 [Unit]
 Description=Xray Service
-Documentation=https://github.com/XTLS/Xray-core
 After=network.target nss-lookup.target
+Wants=network.target
 
 [Service]
 User=root
+Type=simple
+WorkingDirectory=/usr/local/etc/xray
 ExecStart=/usr/local/etc/xray/xray run -config /usr/local/etc/xray/config.json
 Restart=on-failure
 RestartPreventExitStatus=23
@@ -1674,7 +1691,7 @@ EOF
 }
 
 ###################################
-### Xray settings
+### Xray server settings
 ###################################
 xray_server_conf() {
   info " $(text 46) "
@@ -1690,7 +1707,7 @@ xray_server_conf() {
 ### Web sub page
 ###################################
 web_sub_page() {
-  mkdir -p /var/www/${SUB_JSON_PATH}/client/
+  mkdir -p /var/www/${SUB_JSON_PATH}/vless_raw/
   cp -r ${DIR_REVERSE_PROXY}repo/sub_page/* /var/www/${SUB_JSON_PATH}/
 
   sed -i \
@@ -1703,17 +1720,16 @@ web_sub_page() {
 ### Client configuration setup
 ###################################
 client_conf() {
-  cp -r ${DIR_REVERSE_PROXY}repo/conf_template/client_raw.sh /var/www/${SUB_JSON_PATH}/client/${USERNAME}_vl_raw.json
+  cp -r ${DIR_REVERSE_PROXY}repo/conf_template/client_raw.sh /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json
 
   sed -i \
     -e "s/DOMAIN_TEMP/${DOMAIN}/g" \
     -e "s/UUID_TEMP/${XRAY_UUID}/g" \
-    "/var/www/${SUB_JSON_PATH}/client/${USERNAME}_vl_raw.json"
+    "/var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json"
 }
 
-
 ###################################
-### Xray settings
+### Xray client settings
 ###################################
 xray_client_conf() {
   info " $(text 46) "
@@ -2086,6 +2102,141 @@ traffic_stats() {
 }
 
 ###################################
+### Extracting data from haproxy.cfg
+###################################
+extract_data() {
+  CONFIG_FILE_HAPROXY="/etc/haproxy/haproxy.cfg"
+
+  SUB_JSON_PATH=$(grep -oP 'use_backend http-sub if \{ path /.*? \}' "$CONFIG_FILE_HAPROXY" | grep -oP '(?<=path /).*?(?= \})')
+  IP4=$(grep -oP 'acl host_ip hdr\(host\) -i \K[\d\.]+' "$CONFIG_FILE_HAPROXY")
+  DOMAIN=$(grep -oP 'crt /etc/haproxy/certs/\K[^.]+(?:\.[^.]+)+(?=\.pem)' "$CONFIG_FILE_HAPROXY")
+}
+
+add_user_to_xray_config() {
+  inboundnum=$(jq '[.inbounds[].tag] | index("vless_raw")' ${DIR_XRAY}config.json)
+  jq ".inbounds[${inboundnum}].settings.clients += [{\"email\":\"${USERNAME}\",\"level\":0,\"id\":\"${XRAY_UUID}\"}]" "${DIR_XRAY}config.json" > "${DIR_XRAY}config.json.tmp" && mv "${DIR_XRAY}config.json.tmp" "${DIR_XRAY}config.json"
+}
+
+###################################
+### Adding user configuration
+###################################
+add_user_config() {
+  while true; do
+    echo "Введите имя пользователя (или '0' для возврата в меню):"
+    read USERNAME
+
+    case "$USERNAME" in
+      0)
+        echo "Возврат в меню..."
+        return  # Возврат в меню, завершая функцию
+        ;;
+      "")
+        echo "Имя пользователя не может быть пустым. Попробуйте снова."
+        ;;
+      *)
+        if [[ -f /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json ]]; then
+          echo "Пользователь $USERNAME уже добавлен. Попробуйте другое имя."
+          echo
+          continue  # Повтор запроса имени
+        fi
+
+        read XRAY_UUID LUA_UUID < <(generate_uuids)
+        
+        # Добавление пользователя
+        client_conf
+
+        # Добавление в файл /etc/haproxy/.auth.lua
+        sed -i "/local passwords = {/a \  [\"$LUA_UUID\"] = true," /etc/haproxy/.auth.lua
+    
+        # Добавляем нового пользователя
+        add_user_to_xray_config
+
+        systemctl reload nginx && systemctl reload haproxy && systemctl restart xray
+
+        echo "Пользователь $USERNAME добавлен."
+        echo
+        ;;
+    esac
+  done
+}
+
+del_sub_client_config() {
+  if [[ -f /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json ]]; then
+    rm -rf /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json
+  fi
+}
+
+del_lua_uuid_config() {
+  LUA_UUID=${XRAY_UUID//-/}
+  sed -i "/\[\"${LUA_UUID}\"\] = .*/d" /etc/haproxy/.auth.lua
+}
+
+del_xray_server_config() {
+  inboundnum=$(jq '[.inbounds[].tag] | index("vless_raw")' ${DIR_XRAY}config.json)
+  jq "del(.inbounds[${inboundnum}].settings.clients[] | select(.email==\"${USERNAME}\"))" "${DIR_XRAY}config.json" > "${DIR_XRAY}config.json.tmp" && mv "${DIR_XRAY}config.json.tmp" "${DIR_XRAY}config.json"
+}
+
+# Функция для извлечения пользователей
+extract_users() {
+  jq -r '.inbounds[] | select(.tag == "vless_raw") | .settings.clients[] | "\(.email) \(.id)"' "${DIR_XRAY}config.json"
+}
+
+# Функция для форматирования и выбора пользователя
+delete_user_config() {
+  while true; do
+    mapfile -t clients < <(extract_users)
+    if [ ${#clients[@]} -eq 0 ]; then
+      echo "Нет пользователей для отображения."
+      return
+    fi
+    
+    echo "Список пользователей:"
+    local count=1
+    declare -A user_map
+
+    for client in "${clients[@]}"; do
+      IFS=' ' read -r email id <<< "$client"
+      echo "$count. $email (ID: $id)"
+      user_map[$count]="$email $id"
+      ((count++))
+    done
+    echo "0. Выйти"
+
+    # Запрос на выбор пользователей
+    read -p "Введите номера пользователей через запятую: " choices
+    echo
+
+    # Разбиение введенных номеров на массив
+    IFS=', ' read -r -a selected_users <<< "$choices"
+    for choice in "${selected_users[@]}"; do
+      case "$choice" in
+        0)
+          echo "Выход..."
+          return
+          ;;
+        ''|*[!0-9]*)
+          echo "Ошибка: введите корректный номер."
+          ;;
+        *)
+          if [[ -n "${user_map[$choice]}" ]]; then
+            IFS=' ' read -r USERNAME XRAY_UUID <<< "${user_map[$choice]}"
+            echo "Вы выбрали: $USERNAME (ID: $XRAY_UUID)"
+            del_sub_client_config
+            del_lua_uuid_config
+            del_xray_server_config
+          else
+            echo "Некорректный номер: $choice"
+          fi
+          ;;
+      esac
+    done
+  echo
+  echo "|--------------------------------------------------------------------------|"
+  echo
+  done
+}
+
+###################################
 ### Removing all escape sequences
 ###################################
 log_clear() {
@@ -2095,54 +2246,43 @@ log_clear() {
 ###################################
 ### Конфигурирование Xray core
 ###################################
-xray_configuration() {
+reverse_proxy_xray_menu() {
   while true; do
     clear
     banner_xray
     tilda "|--------------------------------------------------------------------------|"
     info " $(text 86) "                      # MENU
     tilda "|--------------------------------------------------------------------------|"
-    info " $(text 87) "                      # 1. Добавление пользователей
-    info " $(text 88) "                      # 2. Удаление пользователей
+    info " 1. Добавление пользователей "     # 1. Добавление пользователей
+    info " 2. Удаление пользователей "       # 2. Удаление пользователей
+    info " 3. Вывод статистики "              # 3. Вывод статистики
     echo
     info " 0. Назад в основное меню"         # 0. Return
-    info " $(text 84) "                      # Exit
     tilda "|--------------------------------------------------------------------------|"
     echo
     reading " $(text 1) " CHOICE_MENU        # Choise
     tilda "$(text 10)"
+    extract_data
     case $CHOICE_MENU in
       1)
-        clear
-        # Тут код для добавления пользователей
+        add_user_config
         ;;
       2)
-        # Тут код для удаления пользователей
+        delete_user_config
+        ;;
+      3)
         ;;
       0)
-        return 0  # Это позволит вернуться в основное меню
+        reverse_proxy_main_menu
         ;;
       *)
         warning " $(text 76) "
         ;;
     esac
-    info " $(text 85) "
-    read -r dummy
   done
 }
 
-###################################
-### Main function
-###################################
-main() {
-  log_entry
-  read_defaults_from_file
-  parse_args "$@" || show_help
-  check_root
-  check_ip
-  check_operating_system
-  echo
-  select_language
+reverse_proxy_main_menu() {
   while true; do
     clear
     banner_xray
@@ -2164,11 +2304,15 @@ main() {
     info " $(text 105) "                     # 11. Traffic statistics
     info " $(text 107) "                     # 12. Change language
     echo
+    info " 13. Конфигурирование Xray "       # 13. Конфигурирование Xray
+    echo
     info " $(text 84) "                      # Exit
     tilda "|--------------------------------------------------------------------------|"
     echo
+
     reading " $(text 1) " CHOICE_MENU        # Choise
     tilda "$(text 10)"
+
     case $CHOICE_MENU in
       1)
         clear
@@ -2232,7 +2376,7 @@ main() {
         select_language
         ;;
       13)
-        xray_configuration
+        reverse_proxy_xray_menu
         ;;
       0)
         clear
@@ -2242,10 +2386,26 @@ main() {
         warning " $(text 76) "
         ;;
     esac
+
     info " $(text 85) "
     read -r dummy
   done
   log_clear
+}
+
+###################################
+### Main function
+###################################
+main() {
+  log_entry
+  read_defaults_from_file
+  parse_args "$@" || show_help
+  check_root
+  check_ip
+  check_operating_system
+  echo
+  select_language
+  reverse_proxy_main_menu
 }
 
 main "$@"
