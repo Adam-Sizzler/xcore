@@ -2114,6 +2114,41 @@ traffic_stats() {
   echo
 }
 
+display_stats() {
+  echo "  📊 Статистика клиентов:"
+  sqlite3 "$dataBasePath" <<EOF
+.headers on
+.mode table
+SELECT
+  email AS "Email",
+  activity_status AS "Status",
+  enabled AS "Enabled",
+  created AS "Created",
+  ip AS "Ips",
+  ip_limit AS "Lim_ip",
+  printf("%.2f MB", session_uplink / 1024.0 / 1024.0) AS "S Upload",
+  printf("%.2f MB", session_downlink / 1024.0 / 1024.0) AS "S Download",
+  printf("%.2f MB", uplink / 1024.0 / 1024.0) AS "Upload",
+  printf("%.2f MB", downlink / 1024.0 / 1024.0) AS "Download"
+FROM clients_stats;
+EOF
+
+  echo
+  echo "  🌐 Статистика сервера:"
+  sqlite3 "$dataBasePath" <<EOF
+.headers on
+.mode table
+SELECT
+  source AS "Source",
+  printf("%.2f MB", session_uplink / 1024.0 / 1024.0) AS "S Upload",
+  printf("%.2f MB", session_downlink / 1024.0 / 1024.0) AS "S Download",
+  printf("%.2f MB", uplink / 1024.0 / 1024.0) AS "Upload",
+  printf("%.2f MB", downlink / 1024.0 / 1024.0) AS "Download"
+FROM traffic_stats;
+EOF
+  echo
+}
+
 ###################################
 ### Extracting data from haproxy.cfg
 ###################################
@@ -2279,8 +2314,17 @@ reverse_proxy_xray_menu() {
     extract_data
     case $CHOICE_MENU in
       1)
-        display_stats
+        local dataBasePath="/usr/local/reverse_proxy/reverse_proxy.db"
+        while true; do
+          clear
+          display_stats "$dataBasePath"
+          echo
+          reading " Введите 0 для выхода: " STATS_CHOICE
+          [[ "$STATS_CHOICE" == "0" ]] && break
+          sleep 10
+        done
         ;;
+
       2)
         add_user_config
         ;;
