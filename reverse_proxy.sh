@@ -2212,6 +2212,7 @@ reverse_proxy_main_menu() {
         [[ ${args[haproxy]} == "true" ]] && haproxy_setup
         [[ ${args[xcore]} == "true" ]] && xray_server_conf
         [[ ${args[xcore]} == "true" ]] && xray_client_conf
+        reverse_proxy_statistics
         write_defaults_to_file
         rotation_and_archiving
         [[ ${args[firewall]} == "true" ]] && enabling_security
