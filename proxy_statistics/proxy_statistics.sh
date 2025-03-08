@@ -460,11 +460,13 @@ EOF
 task_10_sec() {
   while true; do
     clear
-    display_stats
+    if [[ "$1" == "--stats" ]]; then
+      display_stats
+    fi
     api_response
     update_client_stats
     update_proxy_stats
-    sleep 10
+    sleep 10  
   done
 }
 
@@ -483,8 +485,9 @@ statistics_collection() {
   if [ ! -f "$dataBasePath" ]; then
     init_db
   fi
-  task_10_sec &  # Запуск задачи каждые 10 секунд
-  task_50_sec &  # Запуск задачи каждые 60 секунд
+  task_10_sec "$1" &
+  task_50_sec &
+  wait
 }
 
 cleanup() {
@@ -500,5 +503,4 @@ cleanup() {
 }
 
 trap cleanup SIGINT SIGTERM
-statistics_collection
-wait
+statistics_collection "$1"

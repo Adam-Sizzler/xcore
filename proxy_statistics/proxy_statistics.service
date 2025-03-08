@@ -1,0 +1,13 @@
+[Unit]
+Description=Statistics Collection Service for Reverse Proxy
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/usr/local/reverse_proxy/repo/proxy_statistics
+ExecStart=/usr/bin/env bash /usr/local/reverse_proxy/repo/proxy_statistics/proxy_statistics.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
