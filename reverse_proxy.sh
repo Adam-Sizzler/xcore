@@ -2114,6 +2114,141 @@ traffic_stats() {
 }
 
 ###################################
+### Extracting data from haproxy.cfg
+###################################
+extract_data() {
+  CONFIG_FILE_HAPROXY="/etc/haproxy/haproxy.cfg"
+
+  SUB_JSON_PATH=$(grep -oP 'use_backend http-sub if \{ path /.*? \}' "$CONFIG_FILE_HAPROXY" | grep -oP '(?<=path /).*?(?= \})')
+  IP4=$(grep -oP 'acl host_ip hdr\(host\) -i \K[\d\.]+' "$CONFIG_FILE_HAPROXY")
+  DOMAIN=$(grep -oP 'crt /etc/haproxy/certs/\K[^.]+(?:\.[^.]+)+(?=\.pem)' "$CONFIG_FILE_HAPROXY")
+}
+
+add_user_to_xray_config() {
+  inboundnum=$(jq '[.inbounds[].tag] | index("vless_raw")' ${DIR_XRAY}config.json)
+  jq ".inbounds[${inboundnum}].settings.clients += [{\"email\":\"${USERNAME}\",\"level\":0,\"id\":\"${XRAY_UUID}\"}]" "${DIR_XRAY}config.json" > "${DIR_XRAY}config.json.tmp" && mv "${DIR_XRAY}config.json.tmp" "${DIR_XRAY}config.json"
+}
+
+###################################
+### Adding user configuration
+###################################
+add_user_config() {
+  while true; do
+    echo "Введите имя пользователя (или '0' для возврата в меню):"
+    read USERNAME
+
+    case "$USERNAME" in
+      0)
+        echo "Возврат в меню..."
+        return  # Возврат в меню, завершая функцию
+        ;;
+      "")
+        echo "Имя пользователя не может быть пустым. Попробуйте снова."
+        ;;
+      *)
+        if [[ -f /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json ]]; then
+          echo "Пользователь $USERNAME уже добавлен. Попробуйте другое имя."
+          echo
+          continue  # Повтор запроса имени
+        fi
+
+        read XRAY_UUID LUA_UUID < <(generate_uuids)
+        
+        # Добавление пользователя
+        client_conf
+
+        # Добавление в файл /etc/haproxy/.auth.lua
+        sed -i "/local passwords = {/a \  [\"$LUA_UUID\"] = true," /etc/haproxy/.auth.lua
+    
+        # Добавляем нового пользователя
+        add_user_to_xray_config
+
+        systemctl reload nginx && systemctl reload haproxy && systemctl restart xray
+
+        echo "Пользователь $USERNAME добавлен."
+        echo
+        ;;
+    esac
+  done
+}
+
+del_sub_client_config() {
+  if [[ -f /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json ]]; then
+    rm -rf /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json
+  fi
+}
+
+del_lua_uuid_config() {
+  LUA_UUID=${XRAY_UUID//-/}
+  sed -i "/\[\"${LUA_UUID}\"\] = .*/d" /etc/haproxy/.auth.lua
+}
+
+del_xray_server_config() {
+  inboundnum=$(jq '[.inbounds[].tag] | index("vless_raw")' ${DIR_XRAY}config.json)
+  jq "del(.inbounds[${inboundnum}].settings.clients[] | select(.email==\"${USERNAME}\"))" "${DIR_XRAY}config.json" > "${DIR_XRAY}config.json.tmp" && mv "${DIR_XRAY}config.json.tmp" "${DIR_XRAY}config.json"
+}
+
+# Функция для извлечения пользователей
+extract_users() {
+  jq -r '.inbounds[] | select(.tag == "vless_raw") | .settings.clients[] | "\(.email) \(.id)"' "${DIR_XRAY}config.json"
+}
+
+# Функция для форматирования и выбора пользователя
+delete_user_config() {
+  while true; do
+    mapfile -t clients < <(extract_users)
+    if [ ${#clients[@]} -eq 0 ]; then
+      echo "Нет пользователей для отображения."
+      return
+    fi
+    
+    echo "Список пользователей:"
+    local count=1
+    declare -A user_map
+
+    for client in "${clients[@]}"; do
+      IFS=' ' read -r email id <<< "$client"
+      echo "$count. $email (ID: $id)"
+      user_map[$count]="$email $id"
+      ((count++))
+    done
+    echo "0. Выйти"
+
+    # Запрос на выбор пользователей
+    read -p "Введите номера пользователей через запятую: " choices
+    echo
+
+    # Разбиение введенных номеров на массив
+    IFS=', ' read -r -a selected_users <<< "$choices"
+    for choice in "${selected_users[@]}"; do
+      case "$choice" in
+        0)
+          echo "Выход..."
+          return
+          ;;
+        ''|*[!0-9]*)
+          echo "Ошибка: введите корректный номер."
+          ;;
+        *)
+          if [[ -n "${user_map[$choice]}" ]]; then
+            IFS=' ' read -r USERNAME XRAY_UUID <<< "${user_map[$choice]}"
+            echo "Вы выбрали: $USERNAME (ID: $XRAY_UUID)"
+            del_sub_client_config
+            del_lua_uuid_config
+            del_xray_server_config
+          else
+            echo "Некорректный номер: $choice"
+          fi
+          ;;
+      esac
+    done
+  echo
+  echo "|--------------------------------------------------------------------------|"
+  echo
+  done
+}
+
+###################################
 ### Removing all escape sequences
 ###################################
 log_clear() {
@@ -2163,7 +2298,6 @@ reverse_proxy_xray_menu() {
     esac
   done
 }
-
 
 reverse_proxy_main_menu() {
   while true; do
