@@ -1744,9 +1744,10 @@ reverse_proxy_statistics() {
   local SOURCE="/usr/local/reverse_proxy/repo/proxy_statistics/"
   local DESTINATION="/etc/systemd/system/proxy_statistics.service"
   
-  chmod +x ${SOURCE}proxy_statistics.sh
   mv -f "${SERVICE_SRC}proxy_statistics.service" "$DESTINATION"
-  
+  mv -f "${SOURCE}proxy_statistics.sh" "${DIR_REVERSE_PROXY}proxy_statistics.sh"
+  chmod +x ${DIR_REVERSE_PROXY}proxy_statistics.sh
+
   systemctl daemon-reload
   systemctl start proxy_statistics.service
   systemctl enable proxy_statistics.service  

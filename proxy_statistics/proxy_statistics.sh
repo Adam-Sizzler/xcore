@@ -12,10 +12,7 @@ client_current_stats=""
 
 extract_data() {
   local CONFIG_FILE_HAPROXY="/etc/haproxy/haproxy.cfg"
-
   SUB_JSON_PATH=$(grep -oP 'use_backend http-sub if \{ path /.*? \}' "$CONFIG_FILE_HAPROXY" | grep -oP '(?<=path /).*?(?= \})')
-  IP4=$(grep -oP 'acl host_ip hdr\(host\) -i \K[\d\.]+' "$CONFIG_FILE_HAPROXY")
-  DOMAIN=$(grep -oP 'crt /etc/haproxy/certs/\K[^.]+(?:\.[^.]+)+(?=\.pem)' "$CONFIG_FILE_HAPROXY")
 }
 
 # Инициализация базы данных
