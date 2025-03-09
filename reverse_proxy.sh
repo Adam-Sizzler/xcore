@@ -276,7 +276,7 @@ show_help() {
   echo "         [-r|--autoupd <true|false>] [-b|--bbr <true|false>] [-i|--ipv6 <true|false>] [-w|--warp <true|false>]"
   echo "         [-c|--cert <true|false>] [-m|--mon <true|false>] [-l|--shell <true|false>] [-n|--nginx <true|false>]"
   echo "         [-p|--xcore <true|false>] [--custom <true|false>] [-f|--firewall <true|false>] [-s|--ssh <true|false>]"
-  echo "         [-t|--tgbot <true|false>] [-g|--generate <true|false>] [-o|--subdomain <true|false>]"
+  echo "         ] [-g|--generate <true|false>]"
   echo "         [--update] [-h|--help]"
   echo
   echo "  -u, --utils <true|false>       Additional utilities                             (default: ${defaults[utils]})"
@@ -307,12 +307,8 @@ show_help() {
   echo "                                 Настройка файрвола"
   echo "  -s, --ssh <true|false>         SSH access                                       (default: ${defaults[ssh]})"
   echo "                                 SSH доступ"
-  echo "  -t, --tgbot <true|false>       Telegram bot integration                         (default: ${defaults[tgbot]})"
-  echo "                                 Интеграция Telegram бота"
   echo "  -g, --generate <true|false>    Generate a random string for configuration       (default: ${defaults[generate]})"
   echo "                                 Генерация случайных путей для конфигурации"
-  echo "  -o, --subdomain <true|false>   Support for subdomains                           (default: ${defaults[subdomain]})"
-  echo "                                 Поддержка субдоменов"
   echo "      --update                   Update version of Reverse-proxy manager (Version on github: ${VERSION_MANAGER})"
   echo "                                 Обновить версию Reverse-proxy manager (Версия на github: ${VERSION_MANAGER})"
   echo "  -h, --help                     Display this help message"
@@ -330,15 +326,12 @@ update_reverse_proxy() {
   TOKEN="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"
   REPO_URL="https://api.github.com/repos/cortez24rus/reverse_proxy/tarball/main"
   
-  # Скачивание и распаковка репозитория
   mkdir -p "${DIR_REVERSE_PROXY}repo/"
   wget --header="Authorization: Bearer $TOKEN" -qO- $REPO_URL | tar xz --strip-components=1 -C "${DIR_REVERSE_PROXY}repo/"
   
-  # Делаем скрипт исполняемым и создаем ссылку
   chmod +x "${DIR_REVERSE_PROXY}repo/reverse_proxy.sh"
   ln -sf "${DIR_REVERSE_PROXY}repo/reverse_proxy.sh" /usr/local/bin/reverse_proxy
 
-  # Извлечение VERSION_MANAGER с помощью sed
   CURRENT_VERSION=$(sed -n "s/^[[:space:]]*VERSION_MANAGER=[[:space:]]*'\([0-9\.]*\)'/\1/p" "${DIR_REVERSE_PROXY}repo/reverse_proxy.sh")
   warning "Script version: $CURRENT_VERSION"
 
@@ -375,9 +368,7 @@ read_defaults_from_file() {
     defaults[custom]=true
     defaults[firewall]=true
     defaults[ssh]=true
-    defaults[tgbot]=false
     defaults[generate]=true
-    defaults[subdomain]=false
   fi
 }
 
@@ -400,9 +391,7 @@ defaults[xcore]=true
 defaults[custom]=true
 defaults[firewall]=false
 defaults[ssh]=false
-defaults[tgbot]=false
 defaults[generate]=true
-defaults[subdomain]=false
 EOF
 }
 
@@ -452,14 +441,12 @@ declare -A arg_map=(
                   [--custom]=custom
   [-f]=firewall   [--firewall]=firewall
   [-s]=ssh        [--ssh]=ssh
-  [-t]=tgbot      [--tgbot]=tgbot
   [-g]=generate   [--generate]=generate
-  [-o]=subdomain  [--subdomain]=subdomain
 )
 
 parse_args() {
   local opts
-  opts=$(getopt -o hu:a:r:b:i:w:c:m:l:n:x:f:s:t:g:o --long utils:,addu:,autoupd:,bbr:,ipv6:,warp:,cert:,mon:,shell:,nginx:,xcore:,custom:,firewall:,ssh:,tgbot:,generate:,subdomain:,update,depers,help -- "$@")
+  opts=$(getopt -o hu:a:r:b:i:w:c:m:l:n:x:f:s:g --long utils:,addu:,autoupd:,bbr:,ipv6:,warp:,cert:,mon:,shell:,nginx:,xcore:,custom:,firewall:,ssh:,generate:,update,depers,help -- "$@")
 
   if [[ $? -ne 0 ]]; then
     return 1
@@ -705,42 +692,19 @@ crop_domain() {
 ###################################
 check_cf_token() {
   while ! echo "$test_response" | grep -qE "\"${testdomain}\"|\"#dns_records:edit\"|\"#dns_records:read\"|\"#zone:read\""; do
-    local TEMP_DOMAIN_L  # Переменная для временного домена
     DOMAIN=""
-    SUB_DOMAIN=""
     EMAIL=""
     CFTOKEN=""
 
-    # Если флаг subdomain равен true, запрашиваем субдомен и домен.
-    if [[ ${args[subdomain]} == "true" ]]; then
-      reading " $(text 13) " TEMP_DOMAIN_L
-      DOMAIN=$(clean_url "$TEMP_DOMAIN_L")
-      echo
-      reading " $(text 81) " TEMP_DOMAIN_L
-      SUB_DOMAIN=$(clean_url "$TEMP_DOMAIN_L")
-    else
-      # Если subdomain не задан, продолжаем работать с доменом.
-      while [[ -z "$TEMP_DOMAIN_L" ]]; do
-        reading " $(text 13) " TEMP_DOMAIN_L  # Запрашиваем домен
-        TEMP_DOMAIN_L=$(clean_url "$TEMP_DOMAIN_L")  # Очищаем домен
-      done
-
-      # Проверяем, если домен соответствует регулярному выражению
-      if [[ "$TEMP_DOMAIN_L" =~ ${regex[domain]} ]]; then
-        DOMAIN=$(crop_domain "$TEMP_DOMAIN_L")  # Обрезаем домен до последних двух частей
-        SUB_DOMAIN="$TEMP_DOMAIN_L"  # Весь домен сохраняем в SUB_DOMAIN
-      else
-        DOMAIN="$TEMP_DOMAIN_L"  # Если домен второго уровня, сохраняем его без изменений
-        SUB_DOMAIN="www.$TEMP_DOMAIN_L"  # Для домена второго уровня добавляем www в SUB_DOMAIN
-      fi
-    fi
-
+    while [[ -z "$DOMAIN" ]]; do
+      reading " $(text 13) " DOMAIN
+      DOMAIN=$(clean_url "$DOMAIN")
+    done
     echo
-
     while [[ -z $EMAIL ]]; do
       reading " $(text 15) " EMAIL
-      echo
     done
+    echo
     while [[ -z $CFTOKEN ]]; do
       reading " $(text 16) " CFTOKEN
     done
@@ -871,13 +835,7 @@ data_entry() {
       SSH_OK=false
     fi
   fi
-
-  if [[ ${args[tgbot]} == "true" ]]; then
-    tilda "$(text 10)"
-    reading " $(text 35) " ADMIN_ID
-    echo
-    reading " $(text 34) " BOT_TOKEN
-  fi
+  
   tilda "$(text 10)"
 }
 
@@ -1790,15 +1748,11 @@ rotation_backup() {
   cat > ${DIR_REVERSE_PROXY}rotation_backup.sh <<EOF
 #!/bin/bash
 
-# Путь к директории резервного копирования
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
 BACKUP_DIR="${DIR_REVERSE_PROXY}backup"
+DAY_TO_KEEP=6
 
-# Количество дней хранения архивов
-days_to_keep=6
-
-# Удаление архивов старше 7 дней
-find "\$BACKUP_DIR" -type f -name "backup_*.7z" -mtime +\$days_to_keep -exec rm -f {} \;
+find "\$BACKUP_DIR" -type f -name "backup_*.7z" -mtime +\$DAY_TO_KEEP -exec rm -f {} \;
 EOF
   chmod +x ${DIR_REVERSE_PROXY}rotation_backup.sh
   bash "${DIR_REVERSE_PROXY}rotation_backup.sh"
@@ -1832,7 +1786,7 @@ enabling_security() {
       ufw --force reset
       ufw limit 22/tcp comment 'SSH'
       ufw allow 443/tcp comment 'WEB'
-      ufw insert 1 deny from "$BLOCK_ZONE_IP"
+      ufw insert 1 deny from "$BLOCK_ZONE_IP" comment 'Protection from my own subnet (reality of degenerates)'
       ufw --force enable
       ;;
 
@@ -1879,7 +1833,7 @@ ssh_setup() {
 data_output() {
   info " $(text 58) "
   echo
-  out_data " $(text 59) " "https://${DOMAIN}/${SUB_JSON_PATH}/"
+  out_data " $(text 59) " "https://${DOMAIN}/${SUB_JSON_PATH}/sub.html?name=${USERNAME}"
   echo
   if [[ ${args[mon]} == "true" ]]; then
     out_data " $(text 21) " "https://${DOMAIN}/${METRICS}/"
