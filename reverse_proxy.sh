@@ -330,12 +330,16 @@ update_reverse_proxy() {
   TOKEN="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"
   REPO_URL="https://api.github.com/repos/cortez24rus/reverse_proxy/tarball/main"
   
+  # Скачивание и распаковка репозитория
   mkdir -p "${DIR_REVERSE_PROXY}repo/"
   wget --header="Authorization: Bearer $TOKEN" -qO- $REPO_URL | tar xz --strip-components=1 -C "${DIR_REVERSE_PROXY}repo/"
+  
+  # Делаем скрипт исполняемым и создаем ссылку
   chmod +x "${DIR_REVERSE_PROXY}repo/reverse_proxy.sh"
-  ln -sf ${DIR_REVERSE_PROXY}repo/reverse_proxy.sh /usr/local/bin/reverse_proxy
+  ln -sf "${DIR_REVERSE_PROXY}repo/reverse_proxy.sh" /usr/local/bin/reverse_proxy
 
-  CURRENT_VERSION=$(wget -qO- "${DIR_REVERSE_PROXY}/repo/reverse_proxy.sh" | grep -E "^\s*VERSION_MANAGER=" | cut -d'=' -f2)
+  # Извлечение VERSION_MANAGER с помощью sed
+  CURRENT_VERSION=$(sed -n "s/^[[:space:]]*VERSION_MANAGER=[[:space:]]*'\([0-9\.]*\)'/\1/p" "${DIR_REVERSE_PROXY}repo/reverse_proxy.sh")
   warning "Script version: $CURRENT_VERSION"
 
   crontab -l | grep -v -- "--update" | crontab -
