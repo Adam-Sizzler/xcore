@@ -19,8 +19,7 @@ extract_data() {
 init_db() {
   sqlite3 "$dataBasePath" <<EOF
     CREATE TABLE IF NOT EXISTS clients_stats (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE,
+      email TEXT PRIMARY KEY,
       level INTEGER,
       xray_uuid TEXT,
       activity_status TEXT,
