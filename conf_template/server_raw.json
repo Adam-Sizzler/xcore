@@ -32,7 +32,6 @@
       },
       {
         "domain": [
-          "geosite:google",
           "geosite:intel",
           "geosite:category-ru",
           "keyword:xn--",
@@ -125,13 +124,6 @@
       "tag": "blocked",
       "protocol": "blackhole",
       "settings": {}
-    },
-    {
-      "tag": "IPv4",
-      "protocol": "freedom",
-      "settings": {
-        "domainStrategy": "ForceIPv4"
-      }
     },
     {
       "tag": "warp",
