@@ -229,6 +229,7 @@
                     <button class="button" onclick="window.open('https://apps.apple.com/us/app/streisand/id6450534064', '_blank')">Streisand</button>
                 </div>
             </div>
+            <!--
             <br>
             <div class="app-section">
                 <h3>Linux</h3>
@@ -236,19 +237,36 @@
                     <button class="button" onclick="window.open('https://github.com/2dust/v2rayN/releases', '_blank')">V2rayN</button>
                 </div>
             </div>
+            -->
         </section>
+        
         <h2>2. Подключиться к серверу</h2>
         <form onsubmit="return false;">
             <input type="text" placeholder="Введите имя пользователя..." id="nameInput" required><br>
-            <div id="qrcode"></div>
-            <div class="button-grid">
-                <button class="button" onclick="copyXrayJsonLink()">Скопировать ссылку</button>
-                <button class="button" onclick="generateQRCode()">Сгенерировать QR-код</button>
-                <button class="button" onclick="openV2rayNGApp('v2rayng://install-config?url=')">Добавить в V2rayNG</button>
-                <button class="button" onclick="openV2boxApp('v2box://install-sub?url=')">Добавить в V2box</button>
-                <button class="button" onclick="openApp('streisand://import/')">Добавить в Streisand</button>
-                <button class="button" onclick="openApp('invxray://subscription/')">Добавить в Invisible Man</button>
+            <div class="app-section">
+                <h3>Android</h3>
+                <div class="button-grid">
+                    <button class="button" onclick="openV2rayNGApp('v2rayng://install-config?url=')">Добавить в V2rayNG</button>
+                    <button class="button" onclick="openApp('invxray://subscription/')">Добавить в Invisible Man</button>
+                </div>
             </div>
+            <br>
+            <div class="app-section">
+                <h3>iOS</h3>
+                <div class="button-grid">
+                    <button class="button" onclick="openV2boxApp('v2box://install-sub?url=')">Добавить в V2box</button>
+                    <button class="button" onclick="openApp('streisand://import/')">Добавить в Streisand</button>
+                </div>
+            </div>
+            <br>
+            <div class="app-section">
+                <h3>Ручная настройка</h3>
+                <div class="button-grid">
+                    <button class="button" onclick="copyXrayJsonLink()">Скопировать ссылку</button>
+                    <button class="button" onclick="generateQRCode()">Сгенерировать QR-код</button>
+                </div>
+            </div>
+            <div id="qrcode"></div>
         </form>
     </div>
     
