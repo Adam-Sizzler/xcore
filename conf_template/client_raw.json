@@ -105,7 +105,6 @@
       },
       {
         "ip": [
-          "geoip:ru",
           "geoip:private"
         ],
         "outboundTag": "direct"

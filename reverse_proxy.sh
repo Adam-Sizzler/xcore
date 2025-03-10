@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.2.54'
+VERSION_MANAGER='0.2.56'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -2061,6 +2061,7 @@ traffic_stats() {
 
 display_stats() {
   echo "  📊 Статистика клиентов:"
+  echo
   sqlite3 "$dataBasePath" <<EOF
 .headers on
 .mode column
@@ -2071,10 +2072,30 @@ SELECT
   created AS "Created",
   ip AS "Ips",
   ip_limit AS "Lim_ip",
-  printf("%.2f MB", session_uplink / 1024.0 / 1024.0) AS "S Upload",
-  printf("%.2f MB", session_downlink / 1024.0 / 1024.0) AS "S Download",
-  printf("%.2f MB", uplink / 1024.0 / 1024.0) AS "Upload",
-  printf("%.2f MB", downlink / 1024.0 / 1024.0) AS "Download"
+  CASE
+    WHEN session_uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", session_uplink / 1024.0 / 1024.0 / 1024.0)
+    WHEN session_uplink >= 1024 * 1024 THEN printf("%.2f MB", session_uplink / 1024.0 / 1024.0)
+    WHEN session_uplink >= 1024 THEN printf("%.2f KB", session_uplink / 1024.0)
+    ELSE printf("%d B", session_uplink)
+  END AS "S Upload",
+  CASE
+    WHEN session_downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", session_downlink / 1024.0 / 1024.0 / 1024.0)
+    WHEN session_downlink >= 1024 * 1024 THEN printf("%.2f MB", session_downlink / 1024.0 / 1024.0)
+    WHEN session_downlink >= 1024 THEN printf("%.2f KB", session_downlink / 1024.0)
+    ELSE printf("%d B", session_downlink)
+  END AS "S Download",
+  CASE
+    WHEN uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", uplink / 1024.0 / 1024.0 / 1024.0)
+    WHEN uplink >= 1024 * 1024 THEN printf("%.2f MB", uplink / 1024.0 / 1024.0)
+    WHEN uplink >= 1024 THEN printf("%.2f KB", uplink / 1024.0)
+    ELSE printf("%d B", uplink)
+  END AS "Upload",
+  CASE
+    WHEN downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", downlink / 1024.0 / 1024.0 / 1024.0)
+    WHEN downlink >= 1024 * 1024 THEN printf("%.2f MB", downlink / 1024.0 / 1024.0)
+    WHEN downlink >= 1024 THEN printf("%.2f KB", downlink / 1024.0)
+    ELSE printf("%d B", downlink)
+  END AS "Download"
 FROM clients_stats;
 EOF
 
@@ -2085,10 +2106,30 @@ EOF
 .mode table
 SELECT
   source AS "Source",
-  printf("%.2f MB", session_uplink / 1024.0 / 1024.0) AS "S Upload",
-  printf("%.2f MB", session_downlink / 1024.0 / 1024.0) AS "S Download",
-  printf("%.2f MB", uplink / 1024.0 / 1024.0) AS "Upload",
-  printf("%.2f MB", downlink / 1024.0 / 1024.0) AS "Download"
+  CASE
+    WHEN session_uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", session_uplink / 1024.0 / 1024.0 / 1024.0)
+    WHEN session_uplink >= 1024 * 1024 THEN printf("%.2f MB", session_uplink / 1024.0 / 1024.0)
+    WHEN session_uplink >= 1024 THEN printf("%.2f KB", session_uplink / 1024.0)
+    ELSE printf("%d B", session_uplink)
+  END AS "S Upload",
+  CASE
+    WHEN session_downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", session_downlink / 1024.0 / 1024.0 / 1024.0)
+    WHEN session_downlink >= 1024 * 1024 THEN printf("%.2f MB", session_downlink / 1024.0 / 1024.0)
+    WHEN session_downlink >= 1024 THEN printf("%.2f KB", session_downlink / 1024.0)
+    ELSE printf("%d B", session_downlink)
+  END AS "S Download",
+  CASE
+    WHEN uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", uplink / 1024.0 / 1024.0 / 1024.0)
+    WHEN uplink >= 1024 * 1024 THEN printf("%.2f MB", uplink / 1024.0 / 1024.0)
+    WHEN uplink >= 1024 THEN printf("%.2f KB", uplink / 1024.0)
+    ELSE printf("%d B", uplink)
+  END AS "Upload",
+  CASE
+    WHEN downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", downlink / 1024.0 / 1024.0 / 1024.0)
+    WHEN downlink >= 1024 * 1024 THEN printf("%.2f MB", downlink / 1024.0 / 1024.0)
+    WHEN downlink >= 1024 THEN printf("%.2f KB", downlink / 1024.0)
+    ELSE printf("%d B", downlink)
+  END AS "Download"
 FROM traffic_stats;
 EOF
   echo
