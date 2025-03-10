@@ -3,11 +3,12 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.2.9'
+VERSION_MANAGER='0.3.0'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
 DIR_XRAY="/usr/local/etc/xray/"
+LUA_PATH="/etc/haproxy/.auth.lua"
 
 REPO_URL="https://github.com/cortez24rus/reverse_proxy/archive/refs/heads/main.tar.gz"
 
@@ -1459,21 +1460,20 @@ nginx_setup() {
 ###################################
 generate_uuids() {
     local XRAY_UUID=$(cat /proc/sys/kernel/random/uuid)
-    local LUA_UUID=${XRAY_UUID//-/}  # Удаляем все "-"
-    echo "$XRAY_UUID $LUA_UUID"
+    echo "$XRAY_UUID"
 }
 
 ###################################
 ### AUTH LUA
 ###################################
 auth_lua() {
-  read XRAY_UUID LUA_UUID < <(generate_uuids)
-  read PLACEBO_XRAY_UUID PLACEBO_LUA_UUID < <(generate_uuids)
+  read XRAY_UUID < <(generate_uuids)
+  read PLACEBO_XRAY_UUID < <(generate_uuids)
   
-  cat > /etc/haproxy/.auth.lua <<EOF
+  cat > ${LUA_PATH} <<EOF
 local passwords = {
   ["${LUA_UUID}"] = true,
-  ["${PLACEBO_LUA_UUID}"] = true		-- PLACEBO_LUA_UUID
+  ["${PLACEBO_XRAY_UUID}"] = false		-- Заглушка, не удаляй, а то убьет
 }
 
 local function remove_hyphens(uuid)
@@ -1528,7 +1528,7 @@ global
   # log /dev/log local0
   # log /dev/log local1 notice
   log /dev/log local2 warning
-  lua-load /etc/haproxy/.auth.lua
+  lua-load ${LUA_PATH}
   chroot /var/lib/haproxy
   stats socket /run/haproxy/admin.sock mode 660 level admin
   stats timeout 30s
@@ -2132,7 +2132,25 @@ SELECT
   END AS "Download"
 FROM traffic_stats;
 EOF
-  echo
+}
+
+# Функция спиннера
+spinner() {
+  local text=$1
+  local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+  local text_code="\033[0m"  # Без цвета (сброс)
+  local effect_code="\033[1m" # Жирный
+  local delay=0.1
+  local reset_code="\033[0m"  
+
+  # Спиннер
+  while :; do
+    for (( i=0; i<${#spinstr}; i++ )); do
+      printf "\r ${effect_code}${text_code}[%s] %s${reset_code}" "${spinstr:$i:1}" "$text"
+      sleep $delay
+    done
+  done
+  printf "\r\033[K"  # Очистка строки после остановки спиннера
 }
 
 ###################################
@@ -2174,13 +2192,13 @@ add_user_config() {
           continue  # Повтор запроса имени
         fi
 
-        read XRAY_UUID LUA_UUID < <(generate_uuids)
+        read XRAY_UUID < <(generate_uuids)
         
         # Добавление пользователя
         client_conf
 
         # Добавление в файл /etc/haproxy/.auth.lua
-        sed -i "/local passwords = {/a \  [\"$LUA_UUID\"] = true," /etc/haproxy/.auth.lua
+        sed -i "/local passwords = {/a \  [\"$XRAY_UUID\"] = true," ${LUA_PATH}
     
         # Добавляем нового пользователя
         add_user_to_xray_config
@@ -2201,8 +2219,7 @@ del_sub_client_config() {
 }
 
 del_lua_uuid_config() {
-  LUA_UUID=${XRAY_UUID//-/}
-  sed -i "/\[\"${LUA_UUID}\"\] = .*/d" /etc/haproxy/.auth.lua
+  sed -i "/\[\"${XRAY_UUID}\"\] = .*/d" ${LUA_PATH}
 }
 
 del_xray_server_config() {
@@ -2270,6 +2287,95 @@ delete_user_config() {
   done
 }
 
+# Функция для получения UUID и значений из Lua-конфига
+extract_lua_values() {
+  declare -A lua_uuids
+  while IFS= read -r line; do
+    if [[ $line =~ \[\"([a-f0-9\-]+)\"\]\ =\ (true|false) ]]; then
+      uuid="${BASH_REMATCH[1]}"
+      value="${BASH_REMATCH[2]}"
+      lua_uuids["$uuid"]=$value
+    fi
+  done < "$LUA_PATH"
+  echo "${lua_uuids[@]}"
+}
+
+# Функция для извлечения пользователей и их значений из Lua
+extract_users_and_lua_values() {
+  # Получаем данные из Lua в ассоциативный массив
+  declare -A lua_uuids
+  while IFS= read -r line; do
+    if [[ $line =~ \[\"([a-f0-9\-]+)\"\]\ =\ (true|false) ]]; then
+      uuid="${BASH_REMATCH[1]}"
+      value="${BASH_REMATCH[2]}"
+      lua_uuids["$uuid"]=$value
+    fi
+  done < "$LUA_PATH"
+
+  echo "Список пользователей:"
+  # Массив для хранения пользователей
+  counter=0  # Начинаем с 0 для корректной индексации массива
+  # Получаем пользователей из Xray и добавляем в массив
+  mapfile -t clients < <(extract_users)
+  
+  for client in "${clients[@]}"; do
+    IFS=' ' read -r email uuid <<< "$client"
+    # Проверяем UUID в Lua-данных
+    if [[ -n "${lua_uuids[$uuid]}" ]]; then
+      user_map[$counter]="$email $uuid ${lua_uuids[$uuid]}"
+      echo "$((counter+1)). $email - ${lua_uuids[$uuid]} (ID: $uuid)"  # Индексация начинается с 1
+      ((counter++))
+    fi
+  done
+  echo "0. Выйти"
+}
+
+# Функция для выбора пользователей
+select_users() {
+  read -p "Введите номера пользователей через запятую: " choices
+  echo
+
+  # Разбиение введенных номеров на массив
+  IFS=', ' read -r -a selected_users <<< "$choices"
+
+  # Перебор выбранных пользователей
+  for choice in "${selected_users[@]}"; do
+    case "$choice" in
+      0)
+        echo "Выход..."
+        return
+        ;;
+      ''|*[!0-9]*)
+        echo "Ошибка: введите корректный номер."
+        ;;
+      *)
+        if [[ "$choice" -ge 1 && "$choice" -le "${#user_map[@]}" ]]; then
+          selected_user="${user_map[$((choice-1))]}"
+          IFS=' ' read -r email uuid current_value <<< "$selected_user"
+
+          # Изменение значения на противоположное
+          new_value=$([[ "$current_value" == "true" ]] && echo "false" || echo "true")
+
+          # Обновление значения в Lua-файле
+          sed -i "s/\[\"$uuid\"\]\ =\ $current_value/\[\"$uuid\"\]\ =\ $new_value/" "$LUA_PATH"
+
+          echo "Изменено: $email (ID: $uuid) -> $new_value"
+        else
+          echo "Некорректный номер: $choice"
+        fi
+        ;;
+    esac
+  done
+}
+
+# Функция для включения/выключения пользователей
+toggle_user_status() {
+  declare -A user_map
+  extract_users_and_lua_values
+  select_users
+  echo
+}
+
 ###################################
 ### Removing all escape sequences
 ###################################
@@ -2287,7 +2393,7 @@ reverse_proxy_xray_menu() {
     tilda "|--------------------------------------------------------------------------|"
     info " $(text 86) "                      # MENU
     tilda "|--------------------------------------------------------------------------|"
-    info " 1. Вывод статистики "              # 1. Вывод статистики
+    info " 1. Вывод статистики "             # 1. Вывод статистики
     info " 2. Добавление пользователей "     # 2. Добавление пользователей
     info " 3. Удаление пользователей "       # 3. Удаление пользователей
     info " 4. Включение/Отключение клиента " # 4. Включение/Отключение клиента
@@ -2302,12 +2408,25 @@ reverse_proxy_xray_menu() {
       1)
         local dataBasePath="/usr/local/reverse_proxy/reverse_proxy.db"
         while true; do
-          clear
-          display_stats "$dataBasePath"
-          echo
-          reading " Введите 0 для выхода: " STATS_CHOICE
-          [[ "$STATS_CHOICE" == "0" ]] && break
-          sleep 10
+        clear
+        display_stats "$dataBasePath"
+        echo
+        
+        # Запуск спиннера
+        spinner "Введите 0 для выхода: " &
+        spinner_pid=$!
+
+        # Чтение ввода с таймером
+        read -t 10 -r STATS_CHOICE
+
+        # Остановка спиннера
+        kill "$spinner_pid" 2>/dev/null
+        wait "$spinner_pid" 2>/dev/null
+        
+        # Условие выхода
+        [[ "$STATS_CHOICE" == "0" ]] && break
+
+        sleep 10
         done
         ;;
       2)
