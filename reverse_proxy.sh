@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.2.8'
+VERSION_MANAGER='0.2.9'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -2310,7 +2310,6 @@ reverse_proxy_xray_menu() {
           sleep 10
         done
         ;;
-
       2)
         add_user_config
         ;;

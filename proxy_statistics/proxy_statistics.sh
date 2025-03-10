@@ -189,17 +189,24 @@ update_client_stats() {
   done
 
   for email in "${!client_uplink_values[@]}"; do
+    # Разница между текущими и предыдущими данными
+    client_uplink_online=$((client_session_uplink_values[$email] - client_previous_values["$email uplink"]))
+    client_downlink_online=$((client_session_downlink_values[$email] - client_previous_values["$email downlink"]))
+
     client_uplink=${client_uplink_values[$email]:-0}
     client_downlink=${client_downlink_values[$email]:-0}
     client_session_uplink=${client_session_uplink_values[$email]:-0}
     client_session_downlink=${client_session_downlink_values[$email]:-0}
 
+    # Общая разница трафика
+    client_diff_online=$((client_uplink_online + client_downlink_online))
+
     # Расчет статуса активности
-    if [ "$client_diff" -lt 100 ]; then
+    if [ "$client_diff_online" -lt 100 ]; then
       online_status="❌ offline"
-    elif [ "$client_diff" -lt 25000 ]; then
+    elif [ "$client_diff_online" -lt 25000 ]; then
       online_status="💤 idle"
-    elif [ "$client_diff" -lt 12000000 ]; then
+    elif [ "$client_diff_online" -lt 12000000 ]; then
       online_status="🟢 online"
     else
       online_status="🔥 high activity"
