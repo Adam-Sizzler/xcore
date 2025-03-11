@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.3.4'
+VERSION_MANAGER='0.3.5'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -2062,13 +2062,14 @@ traffic_stats() {
 }
 
 display_stats() {
+  echo " 🖥️  Состояние сервера:"
   bash /etc/update-motd.d/02-uptime
   bash /etc/update-motd.d/03-load-average
   bash /etc/update-motd.d/04-memory
   bash /etc/update-motd.d/05-disk-usage
   bash /etc/update-motd.d/09-status
-
-  echo "  📊 Статистика клиентов:"
+  echo
+  echo " 📊 Статистика клиентов:"
   echo
   sqlite3 "$dataBasePath" <<EOF
 .headers on
@@ -2108,7 +2109,7 @@ FROM clients_stats;
 EOF
 
   echo
-  echo "  🌐 Статистика сервера:"
+  echo " 🌐 Статистика сервера:"
   sqlite3 "$dataBasePath" <<EOF
 .headers on
 .mode table
@@ -2140,25 +2141,6 @@ SELECT
   END AS "Download"
 FROM traffic_stats;
 EOF
-}
-
-# Функция спиннера
-spinner() {
-  local text=$1
-  local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-  local text_code="\033[0m"  # Без цвета (сброс)
-  local effect_code="\033[1m" # Жирный
-  local delay=0.1
-  local reset_code="\033[0m"  
-
-  # Спиннер
-  while :; do
-    for (( i=0; i<${#spinstr}; i++ )); do
-      printf "\r ${effect_code}${text_code}[%s] %s${reset_code}" "${spinstr:$i:1}" "$text"
-      sleep $delay
-    done
-  done
-  printf "\r\033[K"  # Очистка строки после остановки спиннера
 }
 
 ###################################
@@ -2420,21 +2402,8 @@ reverse_proxy_xray_menu() {
         clear
         display_stats "$dataBasePath"
         echo
-        
-        # Запуск спиннера
-        spinner "Введите 0 для выхода: " &
-        spinner_pid=$!
-
-        # Чтение ввода с таймером
-        read -t 10 -r STATS_CHOICE
-
-        # Остановка спиннера
-        kill "$spinner_pid" 2>/dev/null
-        wait "$spinner_pid" 2>/dev/null
-        
-        # Условие выхода
+        read -r -p "Введите 0 для выхода: " STATS_CHOICE
         [[ "$STATS_CHOICE" == "0" ]] && break
-
         sleep 10
         done
         enable_logging
