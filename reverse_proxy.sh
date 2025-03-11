@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.4.3'
+VERSION_MANAGER='0.4.4'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -2376,7 +2376,7 @@ sync_client_configs(){
     FILENAME=$(basename "$FILE_PATH")
 
     # Извлечение информации о пользователе из текущего файла
-    USER_INFO=$(jq '.outbounds[] | select(.protocol == "vless") | .settings.vnext[0].users[0]' "$FILE_PATH")
+    USER_INFO=$(jq '.outbounds[] | select(.tag == "vless_raw") | .settings.vnext[0].users[0]' "$FILE_PATH")
 
     # Если информация о пользователе найдена, обновляем файл
     if [[ -n "$USER_INFO" && "$USER_INFO" != "null" ]]; then
@@ -2388,7 +2388,14 @@ sync_client_configs(){
         "$FILE_PATH.tmp"
 
       # Обновляем временный файл с информацией о пользователе
-      jq --argjson user "$USER_INFO" '.outbounds[] |= (select(.protocol == "vless") | .settings.vnext[0].users = [$user])' "$FILE_PATH.tmp" > "$FILE_PATH"
+      jq --argjson user "$USER_INFO" \
+        '.outbounds |= map(
+          if .tag == "vless_raw" then
+            .settings.vnext[0].users = [$user]
+          else
+            .
+          end
+        )' "$FILE_PATH.tmp" > "$FILE_PATH"
 
       # Удаляем временный файл
       rm "$FILE_PATH.tmp"
