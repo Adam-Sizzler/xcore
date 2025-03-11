@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.3.9'
+VERSION_MANAGER='0.4.0'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -2148,7 +2148,7 @@ EOF
 ### Extracting data from haproxy.cfg
 ###################################
 extract_data() {
-  CONFIG_FILE_HAPROXY="/etc/haproxy/haproxy.cfg"
+  local CONFIG_FILE_HAPROXY="/etc/haproxy/haproxy.cfg"
 
   SUB_JSON_PATH=$(grep -oP 'use_backend http-sub if \{ path /.*? \}' "$CONFIG_FILE_HAPROXY" | grep -oP '(?<=path /).*?(?= \})')
   IP4=$(grep -oP 'acl host_ip hdr\(host\) -i \K[\d\.]+' "$CONFIG_FILE_HAPROXY")
@@ -2367,6 +2367,35 @@ toggle_user_status() {
   echo
 }
 
+sync_client_configs(){
+  # Директория с файлами
+  FILES_DIR="/var/www/${SUB_JSON_PATH}/vless_raw/"
+  # Перебор всех файлов в директории
+  for FILE_PATH in "$FILES_DIR"/*.json; do
+    # Извлечение имени файла
+    FILENAME=$(basename "$FILE_PATH")
+
+    # Извлечение информации о пользователе из текущего файла
+    USER_INFO=$(jq '.outbounds[] | select(.protocol == "vless") | .settings.vnext[0].users[0]' "$FILE_PATH")
+
+    # Если информация о пользователе найдена, обновляем файл
+    if [[ -n "$USER_INFO" && "$USER_INFO" != "null" ]]; then
+      # Копируем шаблон во временный файл
+      cp "${DIR_REVERSE_PROXY}repo/conf_template/client_raw.json" "$FILE_PATH.tmp"
+
+      # Обновляем временный файл с информацией о пользователе
+      jq --argjson user "$USER_INFO" '.outbounds[] |= (select(.protocol == "vless") | .settings.vnext[0].users = [$user])' "$FILE_PATH.tmp" > "$FILE_PATH"
+
+      # Удаляем временный файл
+      rm "$FILE_PATH.tmp"
+
+      echo "Файл $FILENAME успешно обновлен."
+    else
+      echo "В файле $FILENAME не найдена информация о пользователе."
+    fi
+  done
+}
+
 ###################################
 ### Removing all escape sequences
 ###################################
@@ -2384,12 +2413,13 @@ reverse_proxy_xray_menu() {
     tilda "|--------------------------------------------------------------------------|"
     info " $(text 86) "                      # MENU
     tilda "|--------------------------------------------------------------------------|"
-    info " 1. Вывод статистики "             # 1. Вывод статистики
-    info " 2. Добавление пользователей "     # 2. Добавление пользователей
-    info " 3. Удаление пользователей "       # 3. Удаление пользователей
-    info " 4. Включение/Отключение клиента " # 4. Включение/Отключение клиента
+    info " 1. Вывод статистики. "             # 1. Вывод статистики
+    info " 2. Добавление пользователей. "     # 2. Добавление пользователей
+    info " 3. Удаление пользователей. "       # 3. Удаление пользователей
+    info " 4. Включение/Отключение клиента. " # 4. Включение/Отключение клиента
+    info " 5. Синхронизация клиентских конфигураций. " # 5. Синхронизация клиентских конфигураций.
     echo
-    info " 0. Назад в основное меню"         # 0. Return
+    info " 0. Назад в основное меню."         # 0. Return
     tilda "|--------------------------------------------------------------------------|"
     echo
     reading " $(text 1) " CHOICE_MENU        # Choise
@@ -2417,6 +2447,9 @@ reverse_proxy_xray_menu() {
         ;;
       4)
         toggle_user_status
+        ;;
+      5)
+        sync_client_configs
         ;;
       0)
         reverse_proxy_main_menu

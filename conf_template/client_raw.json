@@ -89,10 +89,10 @@
       {
         "domain": [
           "geosite:category-ads-all",
-          "keyword:yandex",
-          "keyword:dzen",
           "keyword:yastatic",
-          "keyword:reklama"
+          "keyword:reklama",
+          "keyword:firebase",
+          "keyword:analytics"
         ],
         "outboundTag": "block"
       },
