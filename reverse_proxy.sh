@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.4.0'
+VERSION_MANAGER='0.4.1'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -2165,7 +2165,7 @@ add_user_to_xray_config() {
 ###################################
 add_user_config() {
   while true; do
-    echo "Введите имя пользователя (или '0' для возврата в меню):"
+    echo -n "Введите имя пользователя (или '0' для возврата в меню): "
     read USERNAME
 
     case "$USERNAME" in
@@ -2382,6 +2382,10 @@ sync_client_configs(){
     if [[ -n "$USER_INFO" && "$USER_INFO" != "null" ]]; then
       # Копируем шаблон во временный файл
       cp "${DIR_REVERSE_PROXY}repo/conf_template/client_raw.json" "$FILE_PATH.tmp"
+
+      sed -i \
+        -e "s/DOMAIN_TEMP/${DOMAIN}/g" \
+        "$FILE_PATH.tmp"
 
       # Обновляем временный файл с информацией о пользователе
       jq --argjson user "$USER_INFO" '.outbounds[] |= (select(.protocol == "vless") | .settings.vnext[0].users = [$user])' "$FILE_PATH.tmp" > "$FILE_PATH"
