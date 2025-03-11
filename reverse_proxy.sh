@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.3.3'
+VERSION_MANAGER='0.3.4'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -364,8 +364,8 @@ read_defaults_from_file() {
     defaults[ipv6]=true
     defaults[warp]=false
     defaults[cert]=true
-    defaults[mon]=false
-    defaults[shell]=false
+    defaults[mon]=true
+    defaults[shell]=true
     defaults[nginx]=true
     defaults[xcore]=true
     defaults[custom]=true
@@ -2062,6 +2062,12 @@ traffic_stats() {
 }
 
 display_stats() {
+  bash /etc/update-motd.d/02-uptime
+  bash /etc/update-motd.d/03-load-average
+  bash /etc/update-motd.d/04-memory
+  bash /etc/update-motd.d/05-disk-usage
+  bash /etc/update-motd.d/09-status
+
   echo "  📊 Статистика клиентов:"
   echo
   sqlite3 "$dataBasePath" <<EOF
