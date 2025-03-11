@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.3.7'
+VERSION_MANAGER='0.3.9'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -1699,15 +1699,15 @@ xray_client_conf() {
 }
 
 reverse_proxy_statistics() {
-  local SOURCE="/usr/local/reverse_proxy/repo/proxy_statistics/"
+  local SOURCE="/usr/local/reverse_proxy/repo/statistics/"
   local DESTINATION="/etc/systemd/system/proxy_statistics.service"
   
   mv -f "${SOURCE}proxy_statistics.service" "$DESTINATION"
-  mv -f "${SOURCE}proxy_statistics.sh" "${DIR_REVERSE_PROXY}proxy_statistics.sh"
-  chmod +x ${DIR_REVERSE_PROXY}proxy_statistics.sh
+  chmod +x ${DIR_REVERSE_PROXY}repo/statistics/proxy_statistics.sh
 
   systemctl daemon-reload
   systemctl start proxy_statistics.service
+  systemctl restart proxy_statistics.service
   systemctl enable proxy_statistics.service  
 }
 

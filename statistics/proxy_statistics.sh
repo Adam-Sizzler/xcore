@@ -209,7 +209,7 @@ update_client_stats() {
     elif [ "$client_diff_online" -lt 12000000 ]; then
       online_status="🟢 online"
     else
-      online_status="🔥 high activity"
+      online_status="⚡ overload"
     fi
 
     update_queries+="INSERT OR REPLACE INTO clients_stats (email, activity_status, uplink, downlink, session_uplink, session_downlink) 
