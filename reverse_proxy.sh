@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.3.5'
+VERSION_MANAGER='0.3.6'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -2063,6 +2063,7 @@ traffic_stats() {
 
 display_stats() {
   echo " 🖥️  Состояние сервера:"
+  echo
   bash /etc/update-motd.d/02-uptime
   bash /etc/update-motd.d/03-load-average
   bash /etc/update-motd.d/04-memory
@@ -2399,12 +2400,12 @@ reverse_proxy_xray_menu() {
         disable_logging
         local dataBasePath="/usr/local/reverse_proxy/reverse_proxy.db"
         while true; do
-        clear
-        display_stats "$dataBasePath"
-        echo
-        read -r -p "Введите 0 для выхода: " STATS_CHOICE
-        [[ "$STATS_CHOICE" == "0" ]] && break
-        sleep 10
+          clear
+          display_stats "$dataBasePath"
+          echo
+          echo -n "Введите 0 для выхода (обновление каждые 10 секунд): "
+          read -t 10 -r STATS_CHOICE
+          [[ "$STATS_CHOICE" == "0" ]] && break
         done
         enable_logging
         ;;
