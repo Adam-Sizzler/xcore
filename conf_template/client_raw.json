@@ -75,9 +75,12 @@
           "wikipedia.org",
           "ru.com",
           "ru.net",
-          "dzen.ru",
-          "vkuser.net",
-          "okcdn.ru"
+          "msftncsi.com",
+          "msftconnecttest.com",
+          "cp.cloudflare.com",
+          "connectivitycheck.gstatic.com",
+          "firefox.com",
+          "networkcheck.kde.org"
         ],
         "skipFallback": false,
         "queryStrategy": "ForceIPv4"
@@ -96,7 +99,10 @@
           "keyword:reklama",
           "keyword:firebase",
           "keyword:analytics",
-          "keyword:telemetry"
+          "keyword:telemetry",
+          "vkuser.net",
+          "okcdn.ru",
+          "yandex.net"
         ],
         "outboundTag": "block"
       },
@@ -181,9 +187,12 @@
           "wikipedia.org",
           "ru.com",
           "ru.net",
-          "dzen.ru",
-          "vkuser.net",
-          "okcdn.ru"
+          "msftncsi.com",
+          "msftconnecttest.com",
+          "cp.cloudflare.com",
+          "connectivitycheck.gstatic.com",
+          "firefox.com",
+          "networkcheck.kde.org"
         ],
         "outboundTag": "direct"
       }
