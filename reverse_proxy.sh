@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.4.4'
+VERSION_MANAGER='0.4.5'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -2367,43 +2367,22 @@ toggle_user_status() {
   echo
 }
 
-sync_client_configs(){
-  # Директория с файлами
-  FILES_DIR="/var/www/${SUB_JSON_PATH}/vless_raw/"
-  # Перебор всех файлов в директории
-  for FILE_PATH in "$FILES_DIR"/*.json; do
-    # Извлечение имени файла
+sync_client_configs() {
+  SUB_DIR="/var/www/${SUB_JSON_PATH}/vless_raw/"
+
+  for FILE_PATH in ${SUB_DIR}*.json; do
     FILENAME=$(basename "$FILE_PATH")
 
-    # Извлечение информации о пользователе из текущего файла
-    USER_INFO=$(jq '.outbounds[] | select(.tag == "vless_raw") | .settings.vnext[0].users[0]' "$FILE_PATH")
+    OUT_VL_NUM=$(jq '[.outbounds[].tag] | index("vless_raw")' $FILE_PATH)
+    CLIENT=$(jq ".outbounds[${OUT_VL_NUM}].settings.vnext[].users[]" $FILE_PATH)
+  
+    rm -rf ${FILE_PATH}
+    cp -r ${DIR_REVERSE_PROXY}repo/conf_template/client_raw.json ${FILE_PATH}
+  
+    echo "$(jq ".outbounds[${OUT_VL_NUM}].settings.vnext[].users[] = ${CLIENT}" ${FILE_PATH})" > $FILE_PATH
+    sed -i -e "s/DOMAIN_TEMP/${DOMAIN}/g" ${FILE_PATH}
 
-    # Если информация о пользователе найдена, обновляем файл
-    if [[ -n "$USER_INFO" && "$USER_INFO" != "null" ]]; then
-      # Копируем шаблон во временный файл
-      cp "${DIR_REVERSE_PROXY}repo/conf_template/client_raw.json" "$FILE_PATH.tmp"
-
-      sed -i \
-        -e "s/DOMAIN_TEMP/${DOMAIN}/g" \
-        "$FILE_PATH.tmp"
-
-      # Обновляем временный файл с информацией о пользователе
-      jq --argjson user "$USER_INFO" \
-        '.outbounds |= map(
-          if .tag == "vless_raw" then
-            .settings.vnext[0].users = [$user]
-          else
-            .
-          end
-        )' "$FILE_PATH.tmp" > "$FILE_PATH"
-
-      # Удаляем временный файл
-      rm "$FILE_PATH.tmp"
-
-      echo "Файл $FILENAME успешно обновлен."
-    else
-      echo "В файле $FILENAME не найдена информация о пользователе."
-    fi
+    echo "Файл $FILENAME успешно обновлен."
   done
 }
 
