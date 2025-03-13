@@ -202,7 +202,7 @@ update_client_stats() {
     client_diff_online=$((client_uplink_online + client_downlink_online))
 
     # Расчет статуса активности
-    if [ "$client_diff_online" -lt 100 ]; then
+    if [ "$client_diff_online" -lt 1 ]; then
       online_status="❌ offline"
     elif [ "$client_diff_online" -lt 25000 ]; then
       online_status="💤 idle"
