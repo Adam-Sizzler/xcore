@@ -2083,29 +2083,29 @@ SELECT
   ip AS "Ips",
   ip_limit AS "Lim_ip",
   CASE
-    WHEN session_uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", session_uplink / 1024.0 / 1024.0 / 1024.0)
-    WHEN session_uplink >= 1024 * 1024 THEN printf("%.2f MB", session_uplink / 1024.0 / 1024.0)
-    WHEN session_uplink >= 1024 THEN printf("%.2f KB", session_uplink / 1024.0)
-    ELSE printf("%d B", session_uplink)
+    WHEN sess_uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", sess_uplink / 1024.0 / 1024.0 / 1024.0)
+    WHEN sess_uplink >= 1024 * 1024 THEN printf("%.2f MB", sess_uplink / 1024.0 / 1024.0)
+    WHEN sess_uplink >= 1024 THEN printf("%.2f KB", sess_uplink / 1024.0)
+    ELSE printf("%d B", sess_uplink)
   END AS "Sess Up",
   CASE
-    WHEN session_downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", session_downlink / 1024.0 / 1024.0 / 1024.0)
-    WHEN session_downlink >= 1024 * 1024 THEN printf("%.2f MB", session_downlink / 1024.0 / 1024.0)
-    WHEN session_downlink >= 1024 THEN printf("%.2f KB", session_downlink / 1024.0)
-    ELSE printf("%d B", session_downlink)
+    WHEN sess_downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", sess_downlink / 1024.0 / 1024.0 / 1024.0)
+    WHEN sess_downlink >= 1024 * 1024 THEN printf("%.2f MB", sess_downlink / 1024.0 / 1024.0)
+    WHEN sess_downlink >= 1024 THEN printf("%.2f KB", sess_downlink / 1024.0)
+    ELSE printf("%d B", sess_downlink)
   END AS "Sess Down",
   CASE
     WHEN uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", uplink / 1024.0 / 1024.0 / 1024.0)
     WHEN uplink >= 1024 * 1024 THEN printf("%.2f MB", uplink / 1024.0 / 1024.0)
     WHEN uplink >= 1024 THEN printf("%.2f KB", uplink / 1024.0)
     ELSE printf("%d B", uplink)
-  END AS "Tot Up",
+  END AS "Uplink",
   CASE
     WHEN downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", downlink / 1024.0 / 1024.0 / 1024.0)
     WHEN downlink >= 1024 * 1024 THEN printf("%.2f MB", downlink / 1024.0 / 1024.0)
     WHEN downlink >= 1024 THEN printf("%.2f KB", downlink / 1024.0)
     ELSE printf("%d B", downlink)
-  END AS "Tot Down"
+  END AS "Downlink"
 FROM clients_stats;
 EOF
 
@@ -2117,29 +2117,29 @@ EOF
 SELECT
   source AS "Source",
   CASE
-    WHEN session_uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", session_uplink / 1024.0 / 1024.0 / 1024.0)
-    WHEN session_uplink >= 1024 * 1024 THEN printf("%.2f MB", session_uplink / 1024.0 / 1024.0)
-    WHEN session_uplink >= 1024 THEN printf("%.2f KB", session_uplink / 1024.0)
-    ELSE printf("%d B", session_uplink)
+    WHEN sess_uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", sess_uplink / 1024.0 / 1024.0 / 1024.0)
+    WHEN sess_uplink >= 1024 * 1024 THEN printf("%.2f MB", sess_uplink / 1024.0 / 1024.0)
+    WHEN sess_uplink >= 1024 THEN printf("%.2f KB", sess_uplink / 1024.0)
+    ELSE printf("%d B", sess_uplink)
   END AS "Sess Up",
   CASE
-    WHEN session_downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", session_downlink / 1024.0 / 1024.0 / 1024.0)
-    WHEN session_downlink >= 1024 * 1024 THEN printf("%.2f MB", session_downlink / 1024.0 / 1024.0)
-    WHEN session_downlink >= 1024 THEN printf("%.2f KB", session_downlink / 1024.0)
-    ELSE printf("%d B", session_downlink)
+    WHEN sess_downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", sess_downlink / 1024.0 / 1024.0 / 1024.0)
+    WHEN sess_downlink >= 1024 * 1024 THEN printf("%.2f MB", sess_downlink / 1024.0 / 1024.0)
+    WHEN sess_downlink >= 1024 THEN printf("%.2f KB", sess_downlink / 1024.0)
+    ELSE printf("%d B", sess_downlink)
   END AS "Sess Down",
   CASE
     WHEN uplink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", uplink / 1024.0 / 1024.0 / 1024.0)
     WHEN uplink >= 1024 * 1024 THEN printf("%.2f MB", uplink / 1024.0 / 1024.0)
     WHEN uplink >= 1024 THEN printf("%.2f KB", uplink / 1024.0)
     ELSE printf("%d B", uplink)
-  END AS "Tot Up",
+  END AS "Uplink",
   CASE
     WHEN downlink >= 1024 * 1024 * 1024 THEN printf("%.2f GB", downlink / 1024.0 / 1024.0 / 1024.0)
     WHEN downlink >= 1024 * 1024 THEN printf("%.2f MB", downlink / 1024.0 / 1024.0)
     WHEN downlink >= 1024 THEN printf("%.2f KB", downlink / 1024.0)
     ELSE printf("%d B", downlink)
-  END AS "Tot Down"
+  END AS "Downlink"
 FROM traffic_stats;
 EOF
 }

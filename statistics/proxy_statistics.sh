@@ -31,14 +31,14 @@ init_db() {
       ip TEXT,
       uplink INTEGER DEFAULT 0,
       downlink INTEGER DEFAULT 0,
-      session_uplink INTEGER DEFAULT 0,
-      session_downlink INTEGER DEFAULT 0
+      sess_uplink INTEGER DEFAULT 0,
+      sess_downlink INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS traffic_stats (
       source TEXT PRIMARY KEY,
-      session_uplink INTEGER DEFAULT 0,
-      session_downlink INTEGER DEFAULT 0,
+      sess_uplink INTEGER DEFAULT 0,
+      sess_downlink INTEGER DEFAULT 0,
       uplink INTEGER DEFAULT 0,
       downlink INTEGER DEFAULT 0
     );
@@ -212,14 +212,14 @@ update_client_stats() {
       online_status="⚡ overload"
     fi
 
-    update_queries+="INSERT OR REPLACE INTO clients_stats (email, activity_status, uplink, downlink, session_uplink, session_downlink) 
+    update_queries+="INSERT OR REPLACE INTO clients_stats (email, activity_status, uplink, downlink, sess_uplink, sess_downlink) 
                              VALUES ('$email', '$online_status', $client_uplink, $client_downlink, $client_session_uplink, $client_session_downlink)
                              ON CONFLICT(email) DO UPDATE 
                              SET activity_status = '$online_status',
                                  uplink = uplink + $client_uplink,
                                  downlink = downlink + $client_downlink,
-                                 session_uplink = $client_session_uplink,
-                                 session_downlink = $client_session_downlink; "
+                                 sess_uplink = $client_session_uplink,
+                                 sess_downlink = $client_session_downlink; "
   done
   # Выполнение транзакции, если есть запросы
   [[ -n "$update_queries" ]] && execute_transaction "$update_queries"
@@ -281,16 +281,16 @@ update_proxy_stats() {
   for source in "${!uplink_values[@]}"; do
     uplink=${uplink_values[$source]:-0}
     downlink=${downlink_values[$source]:-0}
-    session_uplink=${session_uplink_values[$source]:-0}
-    session_downlink=${session_downlink_values[$source]:-0}
+    sess_uplink=${session_uplink_values[$source]:-0}
+    sess_downlink=${session_downlink_values[$source]:-0}
 
-    update_queries+="INSERT OR REPLACE INTO traffic_stats (source, uplink, downlink, session_uplink, session_downlink) 
-                       VALUES ('$source', $uplink, $downlink, $session_uplink, $session_downlink)
+    update_queries+="INSERT OR REPLACE INTO traffic_stats (source, uplink, downlink, sess_uplink, sess_downlink) 
+                       VALUES ('$source', $uplink, $downlink, $sess_uplink, $sess_downlink)
                        ON CONFLICT(source) DO UPDATE 
                        SET uplink = uplink + $uplink,
                            downlink = downlink + $downlink,
-                           session_uplink = $session_uplink,
-                           session_downlink = $session_downlink; "
+                           sess_uplink = $sess_uplink,
+                           sess_downlink = $sess_downlink; "
   done
   # Выполнение транзакции, если есть запросы
   [[ -n "$update_queries" ]] && execute_transaction "$update_queries"
@@ -436,8 +436,8 @@ SELECT
   created AS "Created",
   ip AS "Ips",
   ip_limit AS "Lim_ip",
-  printf("%.2f MB", session_uplink / 1024.0 / 1024.0) AS "S Upload",
-  printf("%.2f MB", session_downlink / 1024.0 / 1024.0) AS "S Download",
+  printf("%.2f MB", sess_uplink / 1024.0 / 1024.0) AS "S Upload",
+  printf("%.2f MB", sess_downlink / 1024.0 / 1024.0) AS "S Download",
   printf("%.2f MB", uplink / 1024.0 / 1024.0) AS "Upload",
   printf("%.2f MB", downlink / 1024.0 / 1024.0) AS "Download"
 FROM clients_stats;
@@ -450,8 +450,8 @@ EOF
 .mode table
 SELECT
   source AS "Source",
-  printf("%.2f MB", session_uplink / 1024.0 / 1024.0) AS "S Upload",
-  printf("%.2f MB", session_downlink / 1024.0 / 1024.0) AS "S Download",
+  printf("%.2f MB", sess_uplink / 1024.0 / 1024.0) AS "S Upload",
+  printf("%.2f MB", sess_downlink / 1024.0 / 1024.0) AS "S Download",
   printf("%.2f MB", uplink / 1024.0 / 1024.0) AS "Upload",
   printf("%.2f MB", downlink / 1024.0 / 1024.0) AS "Download"
 FROM traffic_stats;
