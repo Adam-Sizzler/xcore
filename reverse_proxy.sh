@@ -1179,7 +1179,7 @@ monitoring() {
   bash <(curl -Ls https://github.com/cortez24rus/grafana-prometheus/raw/refs/heads/main/prometheus_node_exporter.sh)
 
   cat > /etc/nginx/locations/monitoring.conf <<EOF
-location /${METRICS} {
+location /${METRICS}/ {
   auth_basic "Restricted Content";
   auth_basic_user_file /etc/nginx/.htpasswd;
   proxy_pass http://127.0.0.1:9100/metrics;
@@ -1220,7 +1220,7 @@ SHELLINABOX_ARGS="--no-beep --localhost-only --disable-ssl"
 EOF
 
   cat > /etc/nginx/locations/shellinabox.conf <<EOF
-location /${SHELLBOX} {
+location /${SHELLBOX}/ {
   auth_basic "Restricted Content";
   auth_basic_user_file /etc/nginx/.htpasswd;
   proxy_pass http://127.0.0.1:4200;
