@@ -32,7 +32,17 @@ jobs:
       - name: Build
         run: |
           cd statistics
-          go build -v -o statistics/myapp ./...
+          go build -v -o myapp main.go
+
+      - name: Check if binary exists
+        run: |
+          cd statistics
+          if [ -f myapp ]; then
+            echo "Binary file 'myapp' exists."
+          else
+            echo "Binary file 'myapp' does not exist."
+            exit 1
+          fi
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
