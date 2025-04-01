@@ -162,14 +162,14 @@ func initDB(db *sql.DB) error {
 }
 
 // Функция для выполнения резервного копирования между базами
-func backupDB(srcDB, destDB *sql.DB) error {
+func backupDB(srcDB, memDB *sql.DB) error {
 	srcConn, err := srcDB.Conn(context.Background())
 	if err != nil {
 		return fmt.Errorf("ошибка получения соединения с исходной базой: %v", err)
 	}
 	defer srcConn.Close()
 
-	destConn, err := destDB.Conn(context.Background())
+	destConn, err := memDB.Conn(context.Background())
 	if err != nil {
 		return fmt.Errorf("ошибка получения соединения с целевой базой: %v", err)
 	}
@@ -181,7 +181,7 @@ func backupDB(srcDB, destDB *sql.DB) error {
 		return fmt.Errorf("ошибка при подключении исходной базы: %v", err)
 	}
 
-	// Создаем таблицы в destDB
+	// Создаем таблицы в memDB
 	_, err = destConn.ExecContext(context.Background(), `
         CREATE TABLE IF NOT EXISTS clients_stats (
             email TEXT PRIMARY KEY,
@@ -214,10 +214,10 @@ func backupDB(srcDB, destDB *sql.DB) error {
         );
     `)
 	if err != nil {
-		return fmt.Errorf("ошибка при создании таблиц в destDB: %v", err)
+		return fmt.Errorf("ошибка при создании таблиц в memDB: %v", err)
 	}
 
-	// Копируем данные из src_db в destDB
+	// Копируем данные из src_db в memDB
 	for _, table := range []string{"clients_stats", "traffic_stats", "dns_stats"} {
 		_, err = destConn.ExecContext(context.Background(), fmt.Sprintf(`
             INSERT OR REPLACE INTO %s SELECT * FROM src_db.%s;
