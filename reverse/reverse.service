@@ -1,0 +1,16 @@
+[Unit]
+Description=Reverse Proxy Service
+After=network.target
+
+[Service]
+User=root
+Group=root
+ExecStart=/usr/local/reverse_proxy/projectgo/reverse -dns=true
+WorkingDirectory=/usr/local/reverse_proxy/projectgo
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

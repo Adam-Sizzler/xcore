@@ -33,7 +33,7 @@ type Config struct {
 }
 
 var config = Config{
-	DatabasePath:      "/usr/local/reverse_proxy/projectgo/reverse.db",
+	DatabasePath:      "/usr/local/reverse_proxy/projectgo/data.db",
 	AccessLogPath:     "/usr/local/etc/xray/access.log",
 	DirXray:           "/usr/local/etc/xray/",
 	ConfigFileHaproxy: "/etc/haproxy/haproxy.cfg",
