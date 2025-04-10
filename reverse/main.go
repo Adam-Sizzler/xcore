@@ -983,7 +983,7 @@ func checkExpiredSubscriptions(db *sql.DB) {
 
 				if s.Renew >= 1 {
 					offset := fmt.Sprintf("%d", s.Renew)
-					err = adjustDateOffset(db, s.Email, offset)
+					err = adjustDateOffset(db, s.Email, offset, now)
 					if err != nil {
 						log.Printf("Ошибка продления подписки для %s: %v", s.Email, err)
 						continue
@@ -1031,6 +1031,7 @@ type User struct {
 	Enabled string `json:"enabled"`
 	Sub_end string `json:"sub_end"`
 	Lim_ip  string `json:"lim_ip"`
+	Renew   int    `json:"renew"`
 }
 
 // usersHandler возвращает список пользователей в формате JSON
@@ -1049,7 +1050,7 @@ func usersHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Запрос с двумя столбцами: email и enabled
-		rows, err := db.Query("SELECT email, enabled, sub_end, lim_ip FROM clients_stats")
+		rows, err := db.Query("SELECT email, enabled, sub_end, renew, lim_ip FROM clients_stats")
 		if err != nil {
 			log.Printf("Ошибка выполнения SQL-запроса: %v", err)
 			http.Error(w, "Ошибка выполнения запроса", http.StatusInternalServerError)
@@ -1060,7 +1061,7 @@ func usersHandler(db *sql.DB) http.HandlerFunc {
 		var users []User
 		for rows.Next() {
 			var user User
-			if err := rows.Scan(&user.Email, &user.Enabled, &user.Sub_end, &user.Lim_ip); err != nil {
+			if err := rows.Scan(&user.Email, &user.Enabled, &user.Sub_end, &user.Renew, &user.Lim_ip); err != nil {
 				log.Printf("Ошибка чтения результата: %v", err)
 				http.Error(w, "Ошибка обработки данных", http.StatusInternalServerError)
 				return
@@ -1407,7 +1408,7 @@ func parseAndAdjustDate(offset string, baseDate time.Time) (time.Time, error) {
 }
 
 // adjustDateOffset корректирует дату окончания подписки для пользователя
-func adjustDateOffset(db *sql.DB, email, offset string) error {
+func adjustDateOffset(db *sql.DB, email, offset string, baseDate time.Time) error {
 	offset = strings.TrimSpace(offset)
 
 	if offset == "0" {
@@ -1417,25 +1418,6 @@ func adjustDateOffset(db *sql.DB, email, offset string) error {
 		}
 		log.Printf("Для email %s установлено безлимитное ограничение по времени", email)
 		return nil
-	}
-
-	var subEndStr string
-	err := db.QueryRow("SELECT sub_end FROM clients_stats WHERE email = ?", email).Scan(&subEndStr)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("пользователь не найден")
-		}
-		return fmt.Errorf("ошибка запроса к БД: %v", err)
-	}
-
-	var baseDate time.Time
-	if subEndStr != "" {
-		baseDate, err = time.Parse("2006-01-02-15", subEndStr)
-		if err != nil {
-			return fmt.Errorf("ошибка парсинга sub_end: %v", err)
-		}
-	} else {
-		baseDate = time.Now().UTC()
 	}
 
 	newDate, err := parseAndAdjustDate(offset, baseDate)
@@ -1478,7 +1460,24 @@ func adjustDateOffsetHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		err := adjustDateOffset(db, email, offset)
+		baseDate := time.Now().UTC()
+
+		var subEndStr string
+		err := db.QueryRow("SELECT sub_end FROM clients_stats WHERE email = ?", email).Scan(&subEndStr)
+		if err != nil && err != sql.ErrNoRows {
+			http.Error(w, "Ошибка запросы к БД", http.StatusInternalServerError)
+			return
+		}
+
+		if subEndStr != "" {
+			baseDate, err = time.Parse("2006-01-02-15", subEndStr)
+			if err != nil {
+				http.Error(w, "Ошибка парсинга sub_end", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		err = adjustDateOffset(db, email, offset, baseDate)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
