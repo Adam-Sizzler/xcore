@@ -1624,29 +1624,12 @@ xray_config() {
 ### Xray service
 ###################################
 xray_service() {
-  cat > /etc/systemd/system/xray.service <<EOF
-[Unit]
-Description=Xray Service
-After=network.target nss-lookup.target
-Wants=network.target
-
-[Service]
-User=root
-Type=simple
-WorkingDirectory=/usr/local/etc/xray
-ExecStart=/usr/local/etc/xray/xray run -config /usr/local/etc/xray/config.json
-Restart=on-failure
-RestartPreventExitStatus=23
-LimitNPROC=10000
-LimitNOFILE=1048576
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  mv -f ${DIR_REVERSE_PROXY}/repo/services/xray.service /etc/systemd/system/xray.service
 
   systemctl daemon-reload
-  systemctl enable xray
-  systemctl start xray
+  systemctl enable xray.service
+  systemctl start xray.service
+  systemctl restart xray.service
 }
 
 ###################################
@@ -1699,17 +1682,14 @@ xray_client_conf() {
   tilda "$(text 10)"
 }
 
-reverse_proxy_statistics() {
-  local SOURCE="/usr/local/reverse_proxy/repo/statistics/"
-  local DESTINATION="/etc/systemd/system/proxy_statistics.service"
-  
-  mv -f "${SOURCE}proxy_statistics.service" "$DESTINATION"
-  chmod +x ${DIR_REVERSE_PROXY}repo/statistics/proxy_statistics.sh
+xreverse_service() {
+  chmod +x ${DIR_REVERSE_PROXY}repo/services/xreverse.service
+  mv -f "${DIR_REVERSE_PROXY}repo/services/xreverse.service" "/etc/systemd/system/xreverse.service"
 
   systemctl daemon-reload
-  systemctl start proxy_statistics.service
-  systemctl restart proxy_statistics.service
-  systemctl enable proxy_statistics.service  
+  systemctl enable xreverse.service
+  systemctl start xreverse.service
+  systemctl restart xreverse.service
 }
 
 ###################################
@@ -2556,7 +2536,7 @@ reverse_proxy_main_menu() {
         haproxy_setup
         [[ ${args[xcore]} == "true" ]] && xray_server_conf
         [[ ${args[xcore]} == "true" ]] && xray_client_conf
-        reverse_proxy_statistics
+        xreverse_service
         write_defaults_to_file
 #        rotation_and_archiving
         [[ ${args[firewall]} == "true" ]] && enabling_security
