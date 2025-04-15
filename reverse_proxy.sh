@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.7.6'
+VERSION_MANAGER='0.7.7'
 VERSION_XRAY='25.1.30'
 
 DIR_REVERSE_PROXY="/usr/local/reverse_proxy/"
@@ -625,11 +625,14 @@ check_ip() {
 ###################################
 ### Banner
 ###################################
-banner_xray() {
+banner_xcore() {
   echo
-  echo " █░█ ░░ █▀▀█ █▀▀ ▀█░█▀ █▀▀ █▀▀█ █▀▀ █▀▀ ░░ █▀▀█ █▀▀█ █▀▀█ █░█ █░░█  "
-  echo " ▄▀▄ ▀▀ █▄▄▀ █▀▀ ░█▄█░ █▀▀ █▄▄▀ ▀▀█ █▀▀ ▀▀ █░░█ █▄▄▀ █░░█ ▄▀▄ █▄▄█  "
-  echo " ▀░▀ ░░ ▀░▀▀ ▀▀▀ ░░▀░░ ▀▀▀ ▀░▀▀ ▀▀▀ ▀▀▀ ░░ █▀▀▀ ▀░▀▀ ▀▀▀▀ ▀░▀ ▄▄▄█  "
+  echo " █░█ ░░ █▀▀█ █▀▀█ █▀▀█ █▀▀ "
+  echo " ▄▀▄    █░░  █░░█ █▄▄▀ █▀▀ "
+  echo " ▀░▀ ░░ ▀▀▀▀ ▀▀▀▀ ▀░▀▀ ▀▀▀ $VERSION_MANAGER"
+#  echo " █░█ ░░ █▀▀█ █▀▀ ▀█░█▀ █▀▀ █▀▀█ █▀▀ █▀▀ ░░ █▀▀█ █▀▀█ █▀▀█ █░█ █░░█  "
+#  echo " ▄▀▄ ▀▀ █▄▄▀ █▀▀ ░█▄█░ █▀▀ █▄▄▀ ▀▀█ █▀▀ ▀▀ █░░█ █▄▄▀ █░░█ ▄▀▄ █▄▄█  "
+#  echo " ▀░▀ ░░ ▀░▀▀ ▀▀▀ ░░▀░░ ▀▀▀ ▀░▀▀ ▀▀▀ ▀▀▀ ░░ █▀▀▀ ▀░▀▀ ▀▀▀▀ ▀░▀ ▄▄▄█  "
   echo
 }
 
@@ -2457,9 +2460,7 @@ log_clear() {
 xreverse_proxy_menu() {
   while true; do
     clear
-    banner_xray
-    tilda "|--------------------------------------------------------------------------|"
-    info " $(text 86) "                      # MENU
+    banner_xcore
     tilda "|--------------------------------------------------------------------------|"
     info " 1. Статистика Xray сервера"
     info " 2. DNS-запросы клиентов"
@@ -2526,9 +2527,7 @@ xreverse_proxy_menu() {
 reverse_proxy_main_menu() {
   while true; do
     clear
-    banner_xray
-    tilda "|--------------------------------------------------------------------------|"
-    info " $(text 86) "                      # MENU
+    banner_xcore
     tilda "|--------------------------------------------------------------------------|"
     info " $(text 87) "                      # 1. Install
     echo
@@ -2556,7 +2555,7 @@ reverse_proxy_main_menu() {
         enable_logging
         clear
         check_dependencies
-        banner_xray
+        banner_xcore
         warning_banner
         data_entry
         [[ ${args[utils]} == "true" ]] && installation_of_utilities
