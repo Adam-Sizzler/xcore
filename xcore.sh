@@ -320,25 +320,37 @@ show_help() {
 ### X Core manager
 ###################################
 update_xcore_proxy() {
-  info "Script update and integration."
-  if [[ "$VERSION_MANAGER" == "$CURRENT_VERSION" ]]; then
-    info "Скрипт уже актуален: $VERSION_MANAGER"
+  info " Script update and integration."
+
+  # Получение последней версии из репозитория
+  TOKEN="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" # Рекомендуется вынести в переменную окружения
+  REPO_VER_URL="https://raw.githubusercontent.com/cortez24rus/XCore/main/xcore.sh"
+  GITHUB_VERSION=$(curl -s -H "Authorization: Bearer $TOKEN" "$REPO_VER_URL" | sed -n "s/^[[:space:]]*VERSION_MANAGER=[[:space:]]*'\([0-9\.]*\)'/\1/p")
+
+  echo " Current version: $VERSION_MANAGER"
+
+  # Проверка, удалось ли получить последнюю версию
+  if [[ -z "$GITHUB_VERSION" ]]; then
+    error "Failed to fetch latest version from GitHub"
+    return 1
+  fi
+  echo " Github version: $GITHUB_VERSION"
+
+  # Сравнение версий
+  if [[ "$VERSION_MANAGER" == "$GITHUB_VERSION" ]]; then
+    warning "Script is up-to-date: $VERSION_MANAGER"
+    echo
     return
   fi
 
-  TOKEN="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"
+  warning "Updating script from $VERSION_MANAGER to $GITHUB_VERSION"
+
   REPO_URL="https://api.github.com/repos/cortez24rus/XCore/tarball/main"
-  
   mkdir -p "${DIR_XCORE}/repo/"
   wget --header="Authorization: Bearer $TOKEN" -qO- $REPO_URL | tar xz --strip-components=1 -C "${DIR_XCORE}/repo/"
   
   chmod +x "${DIR_XCORE}/repo/xcore.sh"
   ln -sf "${DIR_XCORE}/repo/xcore.sh" /usr/local/bin/xcore
-
-  sleep 1
-
-  CURRENT_VERSION=$(sed -n "s/^[[:space:]]*VERSION_MANAGER=[[:space:]]*'\([0-9\.]*\)'/\1/p" "${DIR_XCORE}/repo/xcore.sh")
-  warning "Script version: $CURRENT_VERSION"
 
   crontab -l | grep -v -- "--update" | crontab -
   add_cron_rule "0 0 * * * /usr/local/xcore/repo/xcore.sh --update"
