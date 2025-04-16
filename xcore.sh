@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.8.4'
+VERSION_MANAGER='0.8.5'
 VERSION_XRAY='25.1.30'
 
 DIR_XCORE="/opt/xcore"
@@ -1548,7 +1548,8 @@ defaults
   mode http
   log global
   option tcplog
-  option  dontlognull
+  option dontlognull
+  option forwardfor
   timeout connect 5000
   timeout client  50000
   timeout server  50000
