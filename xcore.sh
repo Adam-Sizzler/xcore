@@ -3,7 +3,7 @@
 ###################################
 ### Global values
 ###################################
-VERSION_MANAGER='0.8.3'
+VERSION_MANAGER='0.8.4'
 VERSION_XRAY='25.1.30'
 
 DIR_XCORE="/opt/xcore"
