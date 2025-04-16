@@ -319,7 +319,7 @@ show_help() {
 ###################################
 ### X Core manager
 ###################################
-update_xcore_proxy() {
+update_xcore() {
   info " Script update and integration."
 
   # Получение последней версии из репозитория
@@ -474,7 +474,7 @@ parse_args() {
     case $1 in
       --update)
         echo
-        update_xcore_proxy
+        update_xcore
         exit 0
         ;;
       --depers)
@@ -1760,6 +1760,10 @@ rotation_and_archiving() {
 ###################################
 enabling_security() {
   info " $(text 47) "
+
+  chmod +x "${DIR_XCORE}/repo/security/f2b.sh"
+  ${DIR_XCORE}/repo/security/f2b.sh
+
   BLOCK_ZONE_IP=$(echo ${IP4} | cut -d '.' -f 1-3).0/22
 
   case "$SYSTEM" in
@@ -2583,7 +2587,7 @@ xcore_manager() {
         [[ ${args[cert]} == "true" ]] && issuance_of_certificates
         [[ ${args[mon]} == "true" ]] && monitoring
         [[ ${args[shell]} == "true" ]] && shellinabox
-        update_xcore_proxy
+        update_xcore
         random_site
         [[ ${args[nginx]} == "true" ]] && nginx_setup
         haproxy_setup
