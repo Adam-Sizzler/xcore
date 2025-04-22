@@ -275,8 +275,7 @@ display_help_message() {
   echo "         [-r|--autoupd <true|false>] [-b|--bbr <true|false>] [-i|--ipv6 <true|false>] [-w|--warp <true|false>]"
   echo "         [-c|--cert <true|false>] [-m|--mon <true|false>] [-l|--shell <true|false>] [-n|--nginx <true|false>]"
   echo "         [-p|--xray <true|false>] [--custom <true|false>] [-f|--firewall <true|false>] [-s|--ssh <true|false>]"
-  echo "         ] [-g|--generate <true|false>]"
-  echo "         [--update] [-h|--help]"
+  echo "         [-g|--generate <true|false>] [--update] [-h|--help]"
   echo
   echo "  -u, --utils <true|false>       Additional utilities                             (default: ${defaults[utils]})"
   echo "                                 Дополнительные утилиты"
@@ -353,7 +352,7 @@ update_xcore_manager() {
   ln -sf "${DIR_XCORE}/repo/xcore.sh" /usr/local/bin/xcore
 
   crontab -l | grep -v -- "--update" | crontab -
-  schedule_cron_job "0 0 * * * /opt/xcore/repo/xcore.sh --update"
+  schedule_cron_job "10 5 * * * /opt/xcore/repo/xcore.sh --update"
 
   tilda "\n|-----------------------------------------------------------------------------|\n"
 }
@@ -1531,7 +1530,7 @@ EOF
   bash "${DIR_XCORE}/geolite2_update.sh"
 
   crontab -l | grep -v -- "geolite2_update.sh" | crontab -
-  schedule_cron_job "0 0 * * * ${DIR_XCORE}/geolite2_update.sh"
+  schedule_cron_job "0 5 */3 * * ${DIR_XCORE}/geolite2_update.sh"
 }
 
 ###################################
@@ -1804,7 +1803,7 @@ EOF
   bash "${DIR_XCORE}/sync_xcore.sh"
 
   crontab -l | grep -v -- "sync_xcore.sh" | crontab -
-  schedule_cron_job "5 0 * * 0 ${DIR_XCORE}/sync_xcore.sh"
+  schedule_cron_job "0 5 * * 1 ${DIR_XCORE}/sync_xcore.sh"
 }
 
 ###################################
@@ -2039,7 +2038,7 @@ EOF
   bash "${DIR_XCORE}/backup_dir.sh"
 
   crontab -l | grep -v -- "backup_dir.sh" | crontab -
-  schedule_cron_job "0 0 * * * ${DIR_XCORE}/backup_dir.sh"
+  schedule_cron_job "0 5 * * * ${DIR_XCORE}/backup_dir.sh"
 }
 
 ###################################
@@ -2061,7 +2060,7 @@ EOF
   bash "${DIR_XCORE}/rotation_backup.sh"
 
   crontab -l | grep -v -- "rotation_backup.sh" | crontab -
-  schedule_cron_job "5 0 * * * ${DIR_XCORE}/rotation_backup.sh"
+  schedule_cron_job "5 5 * * * ${DIR_XCORE}/rotation_backup.sh"
 }
 
 ###################################
