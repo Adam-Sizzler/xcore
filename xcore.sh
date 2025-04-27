@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.10'
+VERSION_MANAGER='0.9.11'
 VERSION_XRAY='25.1.30'
 
 DIR_XCORE="/opt/xcore"
@@ -1817,7 +1817,7 @@ create_sync_script() {
 #!/usr/bin/env bash
 
 chmod +x /opt/xcore/repo/bin/xcore
-rsync -av /opt/xcore/repo/bin/ /usr/local/xcore/
+rsync -av --exclude='.env' /opt/xcore/repo/bin/ /usr/local/xcore/
 EOF
   chmod +x ${DIR_XCORE}/sync_xcore.sh
   bash "${DIR_XCORE}/sync_xcore.sh"
