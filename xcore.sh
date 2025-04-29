@@ -7,8 +7,8 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.14'
-VERSION_XRAY='25.1.30'
+VERSION_MANAGER='0.9.15'
+VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
 DIR_XRAY="/usr/local/etc/xray"
@@ -233,22 +233,22 @@ E[87]="1. Standard installation"
 R[87]="1. Стандартная установка"
 E[88]="2. Restore from a rescue copy."
 R[88]="2. Восстановление из резевной копии."
-E[89]="3. Migration to a new version with client retention."
-R[89]="3. Миграция на новую версию с сохранением клиентов."
-E[90]="4. Change the domain name for the proxy."
-R[90]="4. Изменить доменное имя для прокси."
-E[91]="5. Forced reissue of certificates."
-R[91]="5. Принудительный перевыпуск сертификатов."
-E[92]="6. Copy someone else's website to your server."
-R[92]="6. Скопировать чужой сайт на ваш сервер."
-E[93]="7. Find out the size of the directory."
-R[93]="7. Узнать размер директории."
-E[94]="8. Traffic statistics."
-R[94]="8. Статистика трафика."
-E[95]="9. Change language."
-R[95]="9. Изменить язык."
-E[96]="X. Xray management."
-R[96]="X. Управление Xray."
+E[89]="3. Change the domain name for the proxy."
+R[89]="3. Изменить доменное имя для прокси."
+E[90]="4. Forced reissue of certificates."
+R[90]="4. Принудительный перевыпуск сертификатов."
+E[91]="5. Copy someone else's website to your server."
+R[91]="5. Скопировать чужой сайт на ваш сервер."
+E[92]="6. Find out the size of the directory."
+R[92]="6. Узнать размер директории."
+E[93]="7. Traffic statistics."
+R[93]="7. Статистика трафика."
+E[94]="8. Update Xray core"
+R[94]="8. Обновить Xray core."
+E[95]="X. Xray management."
+R[95]="X. Управление Xray."
+E[96]="9. Change language."
+R[96]="9. Изменить язык."
 E[97]="Client migration initiation (experimental feature)."
 R[97]="Начало миграции клиентов (экспериментальная функция)."
 E[98]="Client migration is complete."
@@ -1726,7 +1726,7 @@ EOF
 install_xray() {
   mkdir -p "${DIR_XRAY}"
 
-  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -P "${DIR_XCORE}/" "https://github.com/XTLS/Xray-core/releases/download/v${VERSION_XRAY}/Xray-linux-64.zip"; do
+  while ! wget -q --progress=dot:mega --timeout=30 --tries=10 --retry-connrefused -P "${DIR_XCORE}/" "https://github.com/XTLS/Xray-core/releases/download/${VERSION_XRAY}/Xray-linux-64.zip"; do
     warning " $(text 38) "
     sleep 3
   done
@@ -1770,6 +1770,51 @@ setup_xray_server() {
   setup_xray_service
 
   tilda "$(text 10)"
+}
+
+update_xray() {
+  local releases_json
+  local lines
+  local i
+
+  releases_json=$(curl -s \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/XTLS/Xray-core/releases")
+
+  mapfile -t lines < <(
+    echo "$releases_json" \
+    | jq -r '
+        .[] 
+      | "\(.tag_name) \(
+          if   .prerelease then "(prerelease)"
+          elif .draft      then "(draft)"
+          else "(release)" end
+        )"
+      ' \
+    | head -n 15
+  )
+
+  echo "Available Xray versions:"
+  for i in "${!lines[@]}"; do
+    printf "%2d) %s\n" $((i+1)) "${lines[i]}"
+  done
+
+  local choice
+  while true; do
+    read -rp $'\nEnter a version number (0 to cancel): ' choice
+    [[ "$choice" =~ ^[0-9]+$ ]] || { echo "Please enter a number."; continue; }
+    (( choice == 0 )) && echo "Cancelled." && return 1
+    (( choice >= 1 && choice <= ${#lines[@]} )) || { echo "Out of range."; continue; }
+    break
+  done
+
+  VERSION_XRAY="${lines[choice-1]%% *}"  # отсекаем описание после пробела
+  echo "Selected version: $VERSION_XRAY"
+  echo
+  install_xray
+  systemctl restart xray
+  sleep 2
+  systemctl status xray --no-pager
 }
 
 ###################################
@@ -2675,17 +2720,17 @@ manage_xcore() {
     info " $(text 87) "                      # 1. Install
     echo
     info " $(text 88) "                      # 2. Restore backup
-    #info " $(text 89) "                      # 3. Вывод
-    info " $(text 90) "                      # 4. Change domain
-    info " $(text 91) "                      # 5. Renew cert
+    info " $(text 89) "                      # 3. Change domain
+    info " $(text 90) "                      # 4. Renew cert
     echo
-    info " $(text 92) "                      # 6. Steal web site
+    info " $(text 91) "                      # 5. Steal web site
+    info " $(text 92) "                      # 6. Directory size
+    info " $(text 93) "                      # 7. Traffic statistics
     echo
-    info " $(text 93) "                      # 7. Directory size
-    info " $(text 94) "                      # 8. Traffic statistics
-    info " $(text 95) "                      # 9. Change language
+    info " $(text 94) "                      # 8. Обновить Xray core
+    info " $(text 95) "                      # X. Управление Xray
     echo
-    info " $(text 96) "                      # X. Управление Xray
+    info " $(text 96) "                      # 9. Change language
     echo
     info " $(text 84) "                      # Exit
     tilda "|--------------------------------------------------------------------------|"
@@ -2731,22 +2776,22 @@ manage_xcore() {
         restore_from_backup
         ;;
       3)
-        #display_configuration_output
-        ;;
-      4)
         change_domain_name
         ;;
-      5)
+      4)
         reissue_certificates
         ;;
-      6)
+      5)
         mirror_website
         ;;
-      7)
+      6)
         show_directory_size
         ;;
-      8)
+      7)
         show_traffic_statistics
+        ;;
+      8)
+        update_xray
         ;;
       9)
         rm -rf ${DIR_XCORE}/lang.conf
