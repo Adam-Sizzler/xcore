@@ -8,6 +8,7 @@ User=root
 Type=simple
 WorkingDirectory=/usr/local/etc/xray
 ExecStart=/usr/local/etc/xray/xray run -config /usr/local/etc/xray/config.json
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartPreventExitStatus=23
 LimitNPROC=10000
