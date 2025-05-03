@@ -6,8 +6,8 @@
   "dns": {
     "servers": [
       {
-        "address": "https+local://1.1.1.1/dns-query",
-        "domain": [
+        "address": "https://1.1.1.1/dns-query",
+        "domains": [
           "domain:DOMAIN_TEMP",
           "geosite:category-android-app-download",
           "geosite:sciencedirect",
@@ -70,11 +70,12 @@
           "keyword:ozon",
           "keyword:wildberries",
           "keyword:aliexpress",
-          "keyword:browserleaks",
           "keyword:porno",
           "keyword:2gis",
+          "keyword:browserleaks",
+          "keyword:dnsleaktest",
+          "keyword:ipleak",
           "aeza.net",
-          "dnsleaktest.com",
           "wikipedia.org",
           "ru.com",
           "ru.net",
@@ -85,10 +86,16 @@
           "firefox.com",
           "networkcheck.kde.org"
         ],
+        "skipFallback": true,
+        "queryStrategy": "UseIPv4"
+      },
+      {
+        "address": "https://1.1.1.1/dns-query",
         "skipFallback": false,
-        "queryStrategy": "ForceIPv4"
+        "timeoutMs": 2000
       }
-    ]
+    ],
+    "queryStrategy": "UseIPv4"
   },
   "routing": {
     "domainStrategy": "IPIfNonMatch",
@@ -96,18 +103,10 @@
     "network": "tcp,udp",
     "rules": [
       {
-        "domain": [
-          "geosite:category-ads-all",
-          "keyword:reklama",
-          "keyword:firebase",
-          "keyword:analytics",
-          "keyword:telemetry",
-          "keyword:bongacams",
-          "keyword:tracking",
-          "vkuser.net",
-          "okcdn.ru"
+        "inboundTag": [
+          "api"
         ],
-        "outboundTag": "block"
+        "outboundTag": "api"
       },
       {
         "protocol": [
@@ -123,6 +122,20 @@
       },
       {
         "domain": [
+          "geosite:category-ads-all",
+          "keyword:reklama",
+          "keyword:firebase",
+          "keyword:analytics",
+          "keyword:telemetry",
+          "keyword:bongacams",
+          "keyword:tracking",
+          "vkuser.net",
+          "okcdn.ru"
+        ],
+        "outboundTag": "block"
+      },
+      {
+        "domain": [
           "domain:DOMAIN_TEMP",
           "geosite:category-android-app-download",
           "geosite:sciencedirect",
@@ -185,11 +198,12 @@
           "keyword:ozon",
           "keyword:wildberries",
           "keyword:aliexpress",
-          "keyword:browserleaks",
           "keyword:porno",
           "keyword:2gis",
+          "keyword:browserleaks",
+          "keyword:dnsleaktest",
+          "keyword:ipleak",
           "aeza.net",
-          "dnsleaktest.com",
           "wikipedia.org",
           "ru.com",
           "ru.net",
@@ -205,6 +219,18 @@
     ]
   },
   "inbounds": [
+    {
+      "tag": "api",
+      "listen": "127.0.0.1",
+      "port": 10085,
+      "protocol": "dokodemo-door",
+      "settings": {
+        "address": "127.0.0.1"
+      },
+      "streamSettings": null,
+      "sniffing": null,
+      "allocate": null
+    },
     {
       "tag": "socks",
       "port": 10808,
@@ -225,14 +251,6 @@
       },
       "routeOnly": false,
       "metadataOnly": false
-    },
-    {
-      "tag": "http",
-      "port": 10809,
-      "protocol": "http",
-      "settings": {
-        "userLevel": 8
-      }
     }
   ],
   "outbounds": [
@@ -283,7 +301,7 @@
       "tag": "direct",
       "protocol": "freedom",
       "settings": {
-        "domainStrategy": "ForceIPv4"
+        "domainStrategy": "UseIPv4"
       },
       "sockopt": {
         "tcpMaxSeg": 1460,
@@ -300,5 +318,42 @@
       }
     }
   ],
-  "stats": {}
+  "transport": null,
+  "policy": {
+    "levels": {
+      "1": {
+        "connIdle": 0
+      },
+      "0": {
+        "handshake": 4,
+        "connIdle": 300,
+        "uplinkOnly": 2,
+        "downlinkOnly": 5,
+        "statsUserUplink": true,
+        "statsUserDownlink": true,
+        "statsUserOnline": true
+      }
+    },
+    "system": {
+      "statsInboundDownlink": true,
+      "statsInboundUplink": true,
+      "statsOutboundDownlink": true,
+      "statsOutboundUplink": true
+    }
+  },
+  "api": {
+    "tag": "api",
+    "listen": "127.0.0.1:9953",
+    "services": [
+      "HandlerService",
+      "LoggerService",
+      "StatsService",
+      "ReflectionService"
+    ]
+  },
+  "stats": {},
+  "reverse": null,
+  "fakedns": null,
+  "observatory": null,
+  "burstObservatory": null
 }
