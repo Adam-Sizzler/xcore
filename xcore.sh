@@ -344,9 +344,9 @@ update_xcore_manager() {
     warning "Script is up-to-date: $VERSION_MANAGER"
     echo
     return
+  else
+    warning "Updating script from $VERSION_MANAGER to $GITHUB_VERSION"
   fi
-
-  warning "Updating script from $VERSION_MANAGER to $GITHUB_VERSION"
 
   REPO_URL="https://api.github.com/repos/cortez24rus/XCore/tarball/main"
   mkdir -p "${DIR_XCORE}/repo/"
