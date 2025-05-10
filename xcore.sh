@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.34'
+VERSION_MANAGER='0.9.35'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -1353,8 +1353,8 @@ http {
   # Country access map
   map \$geoip2_country_code \$allow_country {
     default                            0;
-    NL                                 1;
     RU                                 1;
+#    NL                                 1;
   }
 
   # Карта для блокировки по организации
@@ -1543,13 +1543,34 @@ curl -s https://api.github.com/repos/P3TERX/GeoLite.mmdb/releases/latest \
   wget -qO "\$DEST_DIR/\$fname" "\$url"
 done
 
-nginx -s reload
+/usr/sbin/nginx -s reload
 EOF
   chmod +x ${DIR_XCORE}/geolite2_update.sh
   bash "${DIR_XCORE}/geolite2_update.sh"
 
   crontab -l | grep -v -- "geolite2_update.sh" | crontab -
   schedule_cron_job "20 5 */3 * * ${DIR_XCORE}/geolite2_update.sh"
+}
+
+###################################
+### Nginx Logrotate
+###################################
+configure_nginx_logrotate() {
+  cat > /etc/logrotate.d/nginx <<EOF
+/var/log/nginx/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 0640 www-data adm
+    sharedscripts
+    postrotate
+        [ -f /run/nginx.pid ] && kill -USR1 \`cat /run/nginx.pid\`
+    endscript
+}
+EOF
 }
 
 ###################################
