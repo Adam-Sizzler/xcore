@@ -5,10 +5,10 @@ After=network.target
 [Service]
 User=root
 Group=root
-ExecStart=/usr/local/xcore/xcore --dns
+ExecStart=/usr/local/xcore/xcore --dns --net --stats
 WorkingDirectory=/usr/local/xcore
 Restart=always
-RestartSec=30
+RestartSec=5
 KillSignal=SIGTERM
 TimeoutStopSec=10
 
