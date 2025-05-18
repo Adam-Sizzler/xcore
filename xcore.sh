@@ -9,7 +9,7 @@ sqlite3 "/usr/local/xcore/data.db" "ALTER TABLE clients_stats DROP COLUMN level;
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.39'
+VERSION_MANAGER='0.9.41'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -2296,13 +2296,6 @@ show_traffic_statistics() {
 ###################################
 display_server_stats() {
   clear
-  echo -e " 🖥️  Состояние сервера:\n============================"
-  bash /etc/update-motd.d/02-uptime
-  bash /etc/update-motd.d/03-load-average
-  bash /etc/update-motd.d/04-memory
-  bash /etc/update-motd.d/05-disk-usage
-  bash /etc/update-motd.d/09-status
-  echo
   curl -X GET http://127.0.0.1:9952/api/v1/stats
 }
 
