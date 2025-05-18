@@ -41,7 +41,6 @@
           "geosite:blender",
           "geosite:aptoide",
           "geosite:samsung",
-          "geosite:youtube",
           "geosite:yandex",
           "geosite:huawei",
           "geosite:lenovo",
@@ -164,12 +163,6 @@
       },
       {
         "domain": [
-          "googlevideo.com"
-        ],
-        "outboundTag": "vless_raw"
-      },
-      {
-        "domain": [
           "DOMAIN_TEMP",
           "geosite:category-android-app-download",
           "geosite:sciencedirect",
@@ -188,7 +181,6 @@
           "geosite:blender",
           "geosite:aptoide",
           "geosite:samsung",
-          "geosite:youtube",
           "geosite:yandex",
           "geosite:huawei",
           "geosite:lenovo",
