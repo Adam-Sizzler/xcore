@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-sqlite3 "/usr/local/xcore/data.db" "ALTER TABLE clients_stats DROP COLUMN level;"
+sqlite3 "/usr/local/xcore/data.db" "ALTER TABLE clients_stats DROP COLUMN level;" > /dev/null 2>&1
 
 # Copyright (c) 2025 xCore Authors
 # This file is part of xCore.
