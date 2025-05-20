@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-sqlite3 "/usr/local/xcore/data.db" "ALTER TABLE clients_stats DROP COLUMN level;" > /dev/null 2>&1
+# Удалена колонка level из xray config, требует удаления с базы данных для работы с 0.8.7 xcore
+# sqlite3 "/usr/local/xcore/data.db" "ALTER TABLE clients_stats DROP COLUMN level;" > /dev/null 2>&1
 
 # Copyright (c) 2025 xCore Authors
 # This file is part of xCore.
@@ -9,7 +10,7 @@ sqlite3 "/usr/local/xcore/data.db" "ALTER TABLE clients_stats DROP COLUMN level;
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.41'
+VERSION_MANAGER='0.9.42'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -387,8 +388,15 @@ update_xcore_manager() {
   chmod +x "${DIR_XCORE}/repo/xcore.sh"
   ln -sf "${DIR_XCORE}/repo/xcore.sh" /usr/local/bin/xcore
 
-  crontab -l | grep -v -- "--update" | crontab -
+  # crontab -l | grep -v -- "--update" | crontab -
   # schedule_cron_job "15 5 * * * ${DIR_XCORE}/repo/xcore.sh --update"
+
+  # Временно
+  chmod +x ${DIR_XCORE}/repo/services/xcore.service
+  mv -f "${DIR_XCORE}/repo/services/xcore.service" "/etc/systemd/system/xcore.service"
+
+  bash /opt/xcore/sync_xcore.sh
+  systemctl restart xcore
 
   tilda "\n|-----------------------------------------------------------------------------|\n"
 }
