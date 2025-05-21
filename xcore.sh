@@ -10,7 +10,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.46'
+VERSION_MANAGER='0.9.47'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
