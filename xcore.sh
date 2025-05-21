@@ -10,7 +10,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.44'
+VERSION_MANAGER='0.9.46'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -397,6 +397,7 @@ update_xcore_manager() {
 
   bash /opt/xcore/sync_xcore.sh
   systemctl daemon-reload
+  sleep 1
   systemctl restart xcore
 
   tilda "\n|-----------------------------------------------------------------------------|\n"
@@ -704,9 +705,7 @@ display_pre_install_warning() {
 ### CRON JOB MANAGEMENT
 ###################################
 schedule_cron_job() {
-  local rule="$1"
-  local logged_rule="${rule} >> ${DIR_XCORE}/cron_jobs.log 2>&1"
-
+  local logged_rule="$1"
   ( crontab -l | grep -Fxq "$logged_rule" ) || ( crontab -l 2>/dev/null; echo "$logged_rule" ) | crontab -
 }
 
@@ -1149,16 +1148,17 @@ swapfile() {
 
   cat > ${DIR_XCORE}/restart_warp.sh <<EOF
 #!/usr/bin/env bash
-# Получаем количество занятого пространства в swap (в мегабайтах)
+
+LOG_FILE="/opt/xcore/cron_jobs.log"
 SWAP_USED=\$(free -m | grep Swap | awk '{print \$3}')
-# Проверяем, больше ли оно 300 Мб
-if [ "\$SWAP_USED" -gt 200 ]; then
-    # Перезапускаем warp-svc.service
-    systemctl restart warp-svc.service
-    # Записываем дату и время в лог-файл
-    echo "\$(date '+%Y-%m-%d %H:%M:%S') - warp-svc.service перезапущен из-за превышения swap" >> ${DIR_XCORE}/warp_restart_time
+
+if [ "\$SWAP_USED" -gt 300 ]; then
+  systemctl restart warp-svc.service
+  echo "\$(date): warp-svc.service successfully restarted due to high swap usage" >> "\$LOG_FILE"
 fi
+echo >> "\$LOG_FILE"
 EOF
+
   chmod +x ${DIR_XCORE}/restart_warp.sh
 
   crontab -l | grep -v -- "restart_warp.sh" | crontab -
@@ -1236,7 +1236,50 @@ EOF
     fi
   done
 
-  schedule_cron_job "0 5 1 */2 * certbot -q renew"
+  cat > ${DIR_XCORE}/cert_renew.sh <<EOF
+#!/usr/bin/env bash
+
+local CONFIG_FILE_HAPROXY="/etc/haproxy/haproxy.cfg"
+CURR_DOMAIN=\$(grep -oP 'crt /etc/haproxy/certs/\K[^.]+(?:\.[^.]+)+(?=\.pem)' "\$CONFIG_FILE_HAPROXY")
+
+LOG_FILE="/opt/xcore/cron_jobs.log"
+CERT_DIR="/etc/letsencrypt/live/\${CURR_DOMAIN}"
+HAPROXY_CERT_DIR="/etc/haproxy/certs"
+HAPROXY_CERT="\$HAPROXY_CERT_DIR/\${CURR_DOMAIN}.pem"
+
+echo "\$(date): Starting certificate renewal" >> "\$LOG_FILE"
+
+/usr/bin/certbot renew >> "\$LOG_FILE" 2>&1
+if [ \$? -eq 0 ]; then
+  echo "\$(date): certbot renew completed successfully" >> "\$LOG_FILE"
+else
+  echo "\$(date): Error: certbot renew failed" >> "\$LOG_FILE"
+  exit 1
+fi
+
+if cat "\$CERT_DIR/fullchain.pem" "\$CERT_DIR/privkey.pem" > "\$HAPROXY_CERT" 2>> "\$LOG_FILE"; then
+  echo "\$(date): Successfully created \$HAPROXY_CERT" >> "\$LOG_FILE"
+else
+  echo "\$(date): Error: Failed to create \$HAPROXY_CERT" >> "\$LOG_FILE"
+  exit 1
+fi
+
+if /usr/bin/systemctl restart haproxy >> "\$LOG_FILE" 2>&1; then
+  echo "\$(date): haproxy service successfully restarted" >> "\$LOG_FILE"
+else
+  echo "\$(date): Error: Failed to restart haproxy service" >> "\$LOG_FILE"
+  exit 1
+fi
+
+echo "\$(date): Completed certificate renewal" >> "\$LOG_FILE"
+echo >> "\$LOG_FILE"
+EOF
+
+  chmod +x ${DIR_XCORE}/cert_renew.sh
+
+  crontab -l | grep -v -- "cert_renew.sh" | crontab -
+  schedule_cron_job "20 5 */3 * * ${DIR_XCORE}/cert_renew.sh"
+
   tilda "$(text 10)"
 }
 
@@ -1572,20 +1615,27 @@ schedule_geolite2_updates() {
   cat > ${DIR_XCORE}/geolite2_update.sh <<EOF
 #!/usr/bin/env bash
 
+LOG_FILE="/opt/xcore/cron_jobs.log"
 DEST_DIR="/etc/nginx/geolite2"
-mkdir -p "\$DEST_DIR"
+echo "$(date): Starting geo database update" >> \$LOG_FILE
+mkdir -p "\$DEST_DIR" || { echo "$(date): Failed to create \$DEST_DIR" >> \$LOG_FILE; exit 1; }
 
-curl -s https://api.github.com/repos/P3TERX/GeoLite.mmdb/releases/latest \
+/usr/bin/curl -s https://api.github.com/repos/P3TERX/GeoLite.mmdb/releases/latest \
 | grep "browser_download_url" \
 | cut -d '"' -f 4 \
 | grep '\.mmdb$' \
 | while read -r url; do
-  fname=\$(basename "\$url")
-  wget -qO "\$DEST_DIR/\$fname" "\$url"
+  fname=$(basename "\$url")
+  echo "$(date): Downloading \$url to \$DEST_DIR/\$fname" >> \$LOG_FILE
+  /usr/bin/wget -qO "\$DEST_DIR/\$fname" "\$url" || { echo "$(date): Failed to download \$url" >> \$LOG_FILE; exit 1; }
 done
 
-/usr/sbin/nginx -s reload
+echo "$(date): Completed geo database update" >> \$LOG_FILE
+sleep 2
+/usr/sbin/nginx -s reload || { echo "$(date): Failed to reload nginx" >> \$LOG_FILE; exit 1; }
+echo >> "\$LOG_FILE"
 EOF
+
   chmod +x ${DIR_XCORE}/geolite2_update.sh
   bash "${DIR_XCORE}/geolite2_update.sh"
 
@@ -1924,9 +1974,16 @@ create_sync_script() {
   cat > ${DIR_XCORE}/sync_xcore.sh <<EOF
 #!/usr/bin/env bash
 
+LOG_FILE="/opt/xcore/cron_jobs.log"
+echo "\$(date): Starting xcore sync" >> "\$LOG_FILE"
+
 chmod +x /opt/xcore/repo/bin/xcore
-rsync -av --exclude='.env' /opt/xcore/repo/bin/ /usr/local/xcore/
+rsync -av --exclude='.env' "/opt/xcore/repo/bin/" "/usr/local/xcore/" >> "\$LOG_FILE" 2>&1
+
+echo "\$(date): Completed xcore sync" >> "\$LOG_FILE"
+echo >> "\$LOG_FILE"
 EOF
+
   chmod +x ${DIR_XCORE}/sync_xcore.sh
   bash "${DIR_XCORE}/sync_xcore.sh"
 
@@ -2037,7 +2094,7 @@ display_configuration_output() {
 ###################################
 mirror_website() {
   reading " $(text 13) " sitelink
-  local NGINX_CONFIG_L="/etc/nginx/conf.d/local.conf"
+  local NGINX_CONFIG_L="/etc/nginx/locations/root.conf"
   wget -P /var/www --mirror --convert-links --adjust-extension --page-requisites --no-parent https://${sitelink}
 
   mkdir -p ./testdir
@@ -2069,8 +2126,8 @@ mirror_website() {
   sitedir=${resultfile#"/var/www/"}
   sitedir=${sitedir%"/${index}"}
 
-  NEW_ROOT=" root /var/www/${sitedir};"
-  NEW_INDEX=" index ${index};"
+  NEW_ROOT="  root /var/www/${sitedir};"
+  NEW_INDEX="  index ${index};"
 
   sed -i '/^\s*root\s.*/c\ '"$NEW_ROOT" $NGINX_CONFIG_L
   sed -i '/^\s*index\s.*/c\ '"$NEW_INDEX" $NGINX_CONFIG_L
@@ -2132,27 +2189,45 @@ show_directory_size() {
 ###################################
 create_backup_script() {
   cat > ${DIR_XCORE}/backup_dir.sh <<EOF
-#!/usr/bin/env bash
+#!/bin/bash
 
-# Путь к директории резервного копирования
+LOG_FILE="/opt/xcore/cron_jobs.log"
 BACKUP_DIR="/opt/xcore/backup"
 CURRENT_DATE=\$(date +"%y-%m-%d")
 ARCHIVE_NAME="\${BACKUP_DIR}/backup_\${CURRENT_DATE}.7z"
 
+echo "\$(date): Starting backup creation" >> "\$LOG_FILE"
+
 # Создаем директорию для резервных копий, если её нет
-mkdir -p "\$BACKUP_DIR"
+mkdir -p "\$BACKUP_DIR" || { echo "\$(date): Failed to create \$BACKUP_DIR" >> "\$LOG_FILE"; exit 1; }
 
 # Ищем в /var/www директорию с именем длиной 30 символов
-DYN_DIR=$(find /var/www -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | awk 'length == 30')
-
-# Архивируем все директории в один архив
-if 7za a -mx9 "\$ARCHIVE_NAME" "/etc/nginx" "/etc/haproxy" "/etc/letsencrypt" "/usr/local/xcore" "/usr/local/etc/xray" "/var/www/\$DYN_DIR"; then
-  echo "Архив успешно создан: \$ARCHIVE_NAME"
-else
-  echo "Ошибка при создании архива"
+DYN_DIR=\$(find /var/www -maxdepth 1 -type d -name '??????????????????????????????' -exec basename {} \;)
+if [ -z "\$DYN_DIR" ]; then
+  echo "\$(date): No directory with 30 characters found in /var/www" >> "\$LOG_FILE"
   exit 1
 fi
+
+# Проверяем, существуют ли все директории для архивации
+DIRECTORIES=("/etc/nginx" "/etc/haproxy" "/etc/letsencrypt" "/usr/local/xcore" "/usr/local/etc/xray" "/var/www/\$DYN_DIR")
+for dir in "\${DIRECTORIES[@]}"; do
+  if [ ! -d "\$dir" ]; then
+    echo "\$(date): Directory \$dir does not exist" >> "\$LOG_FILE"
+    exit 1
+  fi
+done
+
+# Архивируем все директории в один архив
+echo "\$(date): Creating archive \$ARCHIVE_NAME" >> "\$LOG_FILE"
+if /usr/bin/7za a -mx9 "\$ARCHIVE_NAME" "\${DIRECTORIES[@]}" >> "\$LOG_FILE" 2>&1; then
+  echo "\$(date): Completed backup creation: \$ARCHIVE_NAME" >> "\$LOG_FILE"
+else
+  echo "\$(date): Failed to create archive \$ARCHIVE_NAME" >> "\$LOG_FILE"
+  exit 1
+fi
+echo >> "\$LOG_FILE"
 EOF
+
   chmod +x ${DIR_XCORE}/backup_dir.sh
   bash "${DIR_XCORE}/backup_dir.sh"
 
@@ -2167,13 +2242,21 @@ create_rotation_script() {
   cat > ${DIR_XCORE}/rotation_backup.sh <<EOF
 #!/usr/bin/env bash
 
+LOG_FILE="/opt/xcore/cron_jobs.log"
 BACKUP_DIR="/opt/xcore/backup"
 DAY_TO_KEEP=6
 
-find "\$BACKUP_DIR" -type f -name "backup_*.7z" -mtime +\$DAY_TO_KEEP -exec rm -v -f {} \; | while read -r line; do
-  echo "Удалён файл: \$line"
+echo "\$(date): Starting backup rotation" >> "\$LOG_FILE"
+mkdir -p "\$BACKUP_DIR" || { echo "\$(date): Failed to create \$BACKUP_DIR" >> "\$LOG_FILE"; exit 1; }
+
+find "\$BACKUP_DIR" -type f -name "backup_*.7z" -mtime "+\$DAY_TO_KEEP" -exec rm -v -f {} \; | while read -r line; do
+  echo "\$(date): Deleted file: \$line" >> "\$LOG_FILE"
 done
+
+echo "\$(date): Completed backup rotation" >> "\$LOG_FILE"
+echo >> "\$LOG_FILE"
 EOF
+
   chmod +x ${DIR_XCORE}/rotation_backup.sh
   bash "${DIR_XCORE}/rotation_backup.sh"
 
