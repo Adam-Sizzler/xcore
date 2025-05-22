@@ -106,7 +106,7 @@
         "allowUnexpectedIPs": true,
         "timeoutMs": 1000
       },
-	  "8.8.8.8"
+      "8.8.8.8"
     ],
     "skipFallback": true,
     "queryStrategy": "UseIP"
