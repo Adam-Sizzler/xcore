@@ -10,7 +10,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.50'
+VERSION_MANAGER='0.9.51'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -358,21 +358,18 @@ display_help_message() {
 update_xcore_manager() {
   info " Script update and integration."
 
-  # Получение последней версии из репозитория
-  TOKEN="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" # Рекомендуется вынести в переменную окружения
+  TOKEN="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"
   REPO_VER_URL="https://raw.githubusercontent.com/cortez24rus/XCore/main/xcore.sh"
   GITHUB_VERSION=$(curl -s -H "Authorization: Bearer $TOKEN" "$REPO_VER_URL" | sed -n "s/^[[:space:]]*VERSION_MANAGER=[[:space:]]*'\([0-9\.]*\)'/\1/p")
 
   echo " Current version: $VERSION_MANAGER"
 
-  # Проверка, удалось ли получить последнюю версию
   if [[ -z "$GITHUB_VERSION" ]]; then
     error "Failed to fetch latest version from GitHub"
     return 1
   fi
   echo " Github version: $GITHUB_VERSION"
 
-  # Сравнение версий
   if [[ "$VERSION_MANAGER" == "$GITHUB_VERSION" ]]; then
     warning "Script is up-to-date: $VERSION_MANAGER"
     echo
