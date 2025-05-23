@@ -1,8 +1,8 @@
 {
   "remarks": "HAPROXY",
   "log": {
-    "loglevel": "warning",
-    "dnsLog": false
+    "dnsLog": false,
+    "loglevel": "warning"
   },
   "fakedns": [
     {
@@ -17,8 +17,11 @@
   "dns": {
     "hosts": {
       "DOMAIN_TEMP": "IP_TEMP",
-      "dns.google": ["8.8.8.8","8.8.4.4"],
-      "dns.cloudflare.com": "1.1.1.1"
+      "dns.cloudflare.com": "1.1.1.1",
+      "dns.google": [
+        "8.8.8.8",
+        "8.8.4.4"
+      ]
     },
     "servers": [
       {

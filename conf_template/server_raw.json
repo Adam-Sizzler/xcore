@@ -1,10 +1,10 @@
 {
   "remarks": "HAPROXY",
   "log": {
-    "access": "./access.log",
     "dnsLog": false,
-    "error": "./error.log",
     "loglevel": "warning",
+    "access": "./access.log",
+    "error": "./error.log",
     "maskAddress": ""
   },
   "fakedns": [
@@ -17,15 +17,7 @@
       "poolSize" : 512
     }
   ],
-  "dns": {
-    "servers": [
-      {
-        "address": "https://1.1.1.1/dns-query",
-        "skipFallback": false
-      }
-    ],
-    "queryStrategy": "UseIPv4"
-  },
+  "dns": {},
   "routing": {
     "domainStrategy": "IPIfNonMatch",
     "domainMatcher": "hybrid",
