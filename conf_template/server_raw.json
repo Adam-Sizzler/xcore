@@ -7,16 +7,6 @@
     "error": "./error.log",
     "maskAddress": ""
   },
-  "fakedns": [
-    {
-      "ipPool": "198.18.0.0/16",
-      "poolSize": 512
-    },
-    {
-      "ipPool" : "fc00::/64",
-      "poolSize" : 512
-    }
-  ],
   "dns": {},
   "routing": {
     "domainStrategy": "IPIfNonMatch",
@@ -207,6 +197,16 @@
       "ReflectionService"
     ]
   },
+  "fakedns": [
+    {
+      "ipPool": "198.18.0.0/16",
+      "poolSize": 512
+    },
+    {
+      "ipPool" : "fc00::/64",
+      "poolSize" : 512
+    }
+  ],
   "stats": {},
   "reverse": null,
   "transport": null,

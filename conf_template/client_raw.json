@@ -4,16 +4,6 @@
     "dnsLog": false,
     "loglevel": "warning"
   },
-  "fakedns": [
-    {
-      "ipPool": "198.18.0.0/16",
-      "poolSize": 512
-    },
-    {
-      "ipPool" : "fc00::/64",
-      "poolSize" : 512
-    }
-  ],
   "dns": {
     "hosts": {
       "DOMAIN_TEMP": "IP_TEMP",
@@ -391,6 +381,16 @@
       "ReflectionService"
     ]
   },
+  "fakedns": [
+    {
+      "ipPool": "198.18.0.0/16",
+      "poolSize": 512
+    },
+    {
+      "ipPool" : "fc00::/64",
+      "poolSize" : 512
+    }
+  ],
   "stats": {},
   "reverse": null,
   "transport": null,
