@@ -96,7 +96,7 @@
         ],
         "skipFallback": true,
         "disableFallback": true,
-        "queryStrategy": "UseIPv4",
+        "queryStrategy": "UseIP",
         "allowUnexpectedIPs": true,
         "timeoutMs": 1000
       },
