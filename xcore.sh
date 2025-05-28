@@ -358,7 +358,7 @@ display_help_message() {
 update_xcore_manager() {
   info " Script update and integration."
 
-  TOKEN="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"
+  TOKEN="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"
   REPO_VER_URL="https://raw.githubusercontent.com/cortez24rus/XCore/main/xcore.sh"
   GITHUB_VERSION=$(curl -s -H "Authorization: Bearer $TOKEN" "$REPO_VER_URL" | sed -n "s/^[[:space:]]*VERSION_MANAGER=[[:space:]]*'\([0-9\.]*\)'/\1/p")
 
