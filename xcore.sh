@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.58'
+VERSION_MANAGER='0.9.59'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -1808,6 +1808,11 @@ backend nginx
   mode http
   option forwardfor
   server web 127.0.0.1:36078
+
+backend forbidden
+  mode http
+  timeout server 1h
+  http-request deny deny_status 403
 
 EOF
 
