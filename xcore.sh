@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.57'
+VERSION_MANAGER='0.9.58'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -380,11 +380,10 @@ update_xcore_manager() {
   wget --header="Authorization: Bearer $TOKEN" -qO- $REPO_URL | tar xz --strip-components=1 -C "${DIR_XCORE}/repo/"
 
   chmod +x "${DIR_XCORE}/repo/xcore.sh"
-  chmod +x ${DIR_XCORE}/repo/cron_jobs/*
-
   ln -sf "${DIR_XCORE}/repo/xcore.sh" /usr/local/bin/xcore
-  mv -f "${DIR_XCORE}/repo/services/xcore.service" "/etc/systemd/system/xcore.service"
-  bash ${DIR_XCORE}/repo/cron_jobs/sync_xcore.sh
+  
+  chmod +x ${DIR_XCORE}/repo/cron_jobs/*
+  bash "${DIR_XCORE}/repo/cron_jobs/get_v2ray-stat.sh"
 
   systemctl daemon-reload
   sleep 1
@@ -1006,7 +1005,6 @@ install_nginx() {
   chown -R $USERNGINX:$USERNGINX /var/cache/nginx
   chmod -R 700 /var/cache/nginx
 
-  chmod +x ${DIR_XCORE}/repo/services/nginx.service
   mv -f "${DIR_XCORE}/repo/services/nginx.service" "/etc/systemd/system/nginx.service"
 
   systemctl daemon-reload
@@ -1216,7 +1214,7 @@ swapfile() {
   swapon /swapfile
   swapon --show
 
-  crontab -l | grep -v -- "restart_warp.sh" | crontab -
+  # crontab -l | grep -v -- "restart_warp.sh" | crontab -
   schedule_cron_job "* * * * * ${DIR_XCORE}/repo/cron_jobs/restart_warp.sh"
 }
 
@@ -1959,9 +1957,10 @@ setup_xray_client() {
 ### CREATE WEEKLY SYNC SCRIPT
 ###################################
 create_sync_script() {
+  chmod +x "${DIR_XCORE}/repo/cron_jobs/get_v2ray-stat.sh"
   bash "${DIR_XCORE}/repo/cron_jobs/get_v2ray-stat.sh"
 
-  crontab -l | grep -v -- "get_v2ray-stat.sh" | crontab -
+  # crontab -l | grep -v -- "get_v2ray-stat.sh" | crontab -
   schedule_cron_job "0 5 * * 1 ${DIR_XCORE}/repo/cron_jobs/get_v2ray-stat.sh"
 }
 
@@ -1970,10 +1969,6 @@ create_sync_script() {
 ###################################
 setup_xcore_service() {
   create_sync_script
-  
-  bash <(curl -Ls https://raw.githubusercontent.com/cortez24rus/motd/refs/heads/X/install.sh)
-  chmod +x ${DIR_XCORE}/repo/services/v2ray-stat.service
-  mv -f "${DIR_XCORE}/repo/services/v2ray-stat.service" "/etc/systemd/system/v2ray-stat.service"
 
   systemctl daemon-reload
   systemctl enable v2ray-stat.service
@@ -1988,7 +1983,7 @@ configure_firewall() {
   info " $(text 47) "
 
   chmod +x "${DIR_XCORE}/repo/security/f2b.sh"
-  ${DIR_XCORE}/repo/security/f2b.sh
+  bash ${DIR_XCORE}/repo/security/f2b.sh
 
   BLOCK_ZONE_IP=$(echo ${IP4} | cut -d '.' -f 1-3).0/22
 
@@ -2022,6 +2017,8 @@ configure_firewall() {
 configure_ssh_security() {
   if [[ "${ANSWER_SSH,,}" == "y" ]]; then
     info " $(text 48) "
+    bash <(curl -Ls https://raw.githubusercontent.com/cortez24rus/motd/refs/heads/X/install.sh)
+
     sed -i -e "
       s/#Port/Port/g;
       s/Port 22/Port 22/g;
@@ -2162,9 +2159,10 @@ show_directory_size() {
 ### CREATE BACKUP SCRIPT FOR DIRECTORIES
 ###################################
 create_backup_script() {
+  chmod +x "${DIR_XCORE}/repo/cron_jobs/backup_dir.sh"
   bash "${DIR_XCORE}/repo/cron_jobs/backup_dir.sh"
 
-  crontab -l | grep -v -- "backup_dir.sh" | crontab -
+  #crontab -l | grep -v -- "backup_dir.sh" | crontab -
   schedule_cron_job "5 5 * * * ${DIR_XCORE}/repo/cron_jobs/backup_dir.sh"
 }
 
@@ -2172,9 +2170,10 @@ create_backup_script() {
 ### CREATE BACKUP ROTATION SCRIPT
 ###################################
 create_rotation_script() {
+  chmod +x "${DIR_XCORE}/repo/cron_jobs/rotation_backup.sh"
   bash "${DIR_XCORE}/repo/cron_jobs/rotation_backup.sh"
 
-  crontab -l | grep -v -- "rotation_backup.sh" | crontab -
+  #crontab -l | grep -v -- "rotation_backup.sh" | crontab -
   schedule_cron_job "10 5 * * * ${DIR_XCORE}/repo/cron_jobs/rotation_backup.sh"
 }
 

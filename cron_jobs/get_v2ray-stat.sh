@@ -4,6 +4,7 @@ REPO="cortez24rus/v2ray-stat"
 FILE="v2ray-stat_linux_amd64"
 DEST_DIR="/usr/local/v2ray-stat"
 LOG_FILE="/opt/xcore/cron_jobs.log"
+DIR_XCORE="/opt/xcore"
 
 echo "$(date): Starting download of $FILE" >> "$LOG_FILE"
 mkdir -p "$DEST_DIR"
@@ -19,6 +20,8 @@ fi
 # Download and make executable
 echo "$(date): Downloading $FILE to $DEST_DIR..." >> "$LOG_FILE"
 curl -L -o "$DEST_DIR/$FILE" "$URL" && chmod +x "$DEST_DIR/$FILE" || { echo "$(date): Error: Failed to download or set executable permissions for $FILE" >> "$LOG_FILE"; exit 1; }
+
+cp "${DIR_XCORE}/repo/services/v2ray-stat.service" "/etc/systemd/system/v2ray-stat.service"
 
 echo "$(date): Done! $FILE downloaded to $DEST_DIR and set as executable" >> "$LOG_FILE"
 echo >> "$LOG_FILE"
