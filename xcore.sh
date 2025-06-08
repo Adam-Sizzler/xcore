@@ -2316,7 +2316,7 @@ extract_haproxy_data() {
   done
 
   local CONFIG_FILE_HAPROXY="/etc/haproxy/haproxy.cfg"
-  IP4=$(grep -oP 'acl host_ip hdr\(host\) -i \K[\d\.]+' "$CONFIG_FILE_HAPROXY")
+  detect_external_ip
   CURR_DOMAIN=$(grep -oP 'crt /etc/haproxy/certs/\K[^.]+(?:\.[^.]+)+(?=\.pem)' "$CONFIG_FILE_HAPROXY")
 }
 
