@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.59'
+VERSION_MANAGER='0.9.60'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -1005,7 +1005,7 @@ install_nginx() {
   chown -R $USERNGINX:$USERNGINX /var/cache/nginx
   chmod -R 700 /var/cache/nginx
 
-  mv -f "${DIR_XCORE}/repo/services/nginx.service" "/etc/systemd/system/nginx.service"
+  cp "${DIR_XCORE}/repo/services/nginx.service" "/etc/systemd/system/nginx.service"
 
   systemctl daemon-reload
   systemctl start nginx
@@ -1854,7 +1854,7 @@ configure_xray_server() {
 ### SETUP XRAY SYSTEMD SERVICE
 ###################################
 setup_xray_service() {
-  mv -f ${DIR_XCORE}/repo/services/xray.service /etc/systemd/system/xray.service
+  cp ${DIR_XCORE}/repo/services/xray.service /etc/systemd/system/xray.service
 
   systemctl daemon-reload
   systemctl enable xray.service

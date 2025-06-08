@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 REPO="cortez24rus/v2ray-stat"
-FILE="v2ray-stat_linux_amd64"
+FILE="v2ray-stat-linux-amd64"
 DEST_DIR="/usr/local/v2ray-stat"
 LOG_FILE="/opt/xcore/cron_jobs.log"
 DIR_XCORE="/opt/xcore"
@@ -11,15 +11,17 @@ mkdir -p "$DEST_DIR"
 
 # Get download URL from latest release
 URL=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep -o "https.*$FILE" | head -1)
+echo $URL
 
 if [ -z "$URL" ]; then
   echo "$(date): Error: File $FILE not found in latest release" >> "$LOG_FILE"
+  echo >> "$LOG_FILE"
   exit 1
 fi
 
 # Download and make executable
 echo "$(date): Downloading $FILE to $DEST_DIR..." >> "$LOG_FILE"
-curl -L -o "$DEST_DIR/$FILE" "$URL" && chmod +x "$DEST_DIR/$FILE" || { echo "$(date): Error: Failed to download or set executable permissions for $FILE" >> "$LOG_FILE"; exit 1; }
+curl -L -o "$DEST_DIR/v2ray-stat" "$URL" && chmod +x "$DEST_DIR/$FILE" || { echo "$(date): Error: Failed to download or set executable permissions for $FILE" >> "$LOG_FILE"; exit 1; }
 
 cp "${DIR_XCORE}/repo/services/v2ray-stat.service" "/etc/systemd/system/v2ray-stat.service"
 
