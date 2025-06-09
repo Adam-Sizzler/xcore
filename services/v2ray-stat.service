@@ -1,5 +1,5 @@
 [Unit]
-Description=X Core Service
+Description=V2ray stat Service
 After=network.target
 
 [Service]
