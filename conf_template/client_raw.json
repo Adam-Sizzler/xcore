@@ -272,7 +272,7 @@
   ],
   "outbounds": [
     {
-      "tag": "vless_raw",
+      "tag": "vless-out",
       "protocol": "vless",
       "userLevel": 1,
       "streamSettings": {

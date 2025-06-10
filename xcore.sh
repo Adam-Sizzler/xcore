@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.61'
+VERSION_MANAGER='0.9.62'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -2317,7 +2317,7 @@ extract_haproxy_data() {
 ### ADD USER TO XRAY CONFIGURATION
 ###################################
 add_user_to_xray() {
-  inboundnum=$(jq '[.inbounds[].tag] | index("vless_raw")' ${DIR_XRAY}/config.json)
+  inboundnum=$(jq '[.inbounds[].tag] | index("vless-out")' ${DIR_XRAY}/config.json)
   jq ".inbounds[${inboundnum}].settings.clients += [{\"email\":\"${USERNAME}\",\"id\":\"${XRAY_UUID}\"}]" "${DIR_XRAY}/config.json" > "${DIR_XRAY}/config.json.tmp" && mv "${DIR_XRAY}/config.json.tmp" "${DIR_XRAY}/config.json"
 }
 
@@ -2386,7 +2386,7 @@ delete_lua_uuid() {
 ### DELETE USER FROM XRAY SERVER CONFIG
 ###################################
 delete_from_xray_server() {
-  inboundnum=$(jq '[.inbounds[].tag] | index("vless_raw")' ${DIR_XRAY}/config.json)
+  inboundnum=$(jq '[.inbounds[].tag] | index("vless-out")' ${DIR_XRAY}/config.json)
   jq "del(.inbounds[${inboundnum}].settings.clients[] | select(.email==\"${USERNAME}\"))" "${DIR_XRAY}/config.json" > "${DIR_XRAY}/config.json.tmp" && mv "${DIR_XRAY}/config.json.tmp" "${DIR_XRAY}/config.json"
 }
 
@@ -2394,7 +2394,7 @@ delete_from_xray_server() {
 ### EXTRACT USERS FROM XRAY CONFIG
 ###################################
 extract_xray_users() {
-  jq -r '.inbounds[] | select(.tag == "vless_raw") | .settings.clients[] | "\(.email) \(.id)"' "${DIR_XRAY}/config.json"
+  jq -r '.inbounds[] | select(.tag == "vless-out") | .settings.clients[] | "\(.email) \(.id)"' "${DIR_XRAY}/config.json"
 }
 
 ###################################
@@ -2464,7 +2464,7 @@ sync_client_configs() {
   for FILE_PATH in ${SUB_DIR}*.json; do
     FILENAME=$(basename "$FILE_PATH")
 
-    OUT_VL_NUM=$(jq '[.outbounds[].tag] | index("vless_raw")' $FILE_PATH)
+    OUT_VL_NUM=$(jq '[.outbounds[].tag] | index("vless-out")' $FILE_PATH)
     CLIENT=$(jq ".outbounds[${OUT_VL_NUM}].settings.vnext[].users[]" $FILE_PATH)
 
     rm -rf ${FILE_PATH}
@@ -2504,13 +2504,13 @@ add_xray_chain_outbounds() {
 
   # 3) Извлекаем нужный outbound
   remote_outbound=$(jq -c '.outbounds
-    | map(select(.tag=="vless_raw"))
+    | map(select(.tag=="vless-out"))
     | .[0]
-    | if . then (.tag="vless_raw_chain") else empty end' \
+    | if . then (.tag="vless_out_chain") else empty end' \
   <<<"$body")
 
   if [[ -z "$remote_outbound" ]]; then
-    echo "Тег vless_raw не найден" >&2
+    echo "Тег vless-out не найден" >&2
     return 1
   fi
 
@@ -2766,7 +2766,7 @@ fetch_dns_stats() {
 ### TOGGLE USER STATUS VIA API
 ###################################
 toggle_user_status() {
-  update_user_parameter_patch "enabled" "http://127.0.0.1:9952/api/v1/set-enabled" "Введите true для включения и false отключения клиента"
+  update_user_parameter_patch "enabled" "http://127.0.0.1:9952/api/v1/set_enabled" "Введите true для включения и false отключения клиента"
 }
 
 ###################################
@@ -2787,7 +2787,7 @@ update_user_renewal() {
 ### ADJUST USER SUBSCRIPTION END DATE
 ###################################
 adjust_subscription_date() {
-  update_user_parameter_patch "sub_end" "http://127.0.0.1:9952/api/v1/adjust-date" "Введите значение sub_end (например, +1, -1:3, 0)"
+  update_user_parameter_patch "sub_end" "http://127.0.0.1:9952/api/v1/adjust_date" "Введите значение sub_end (например, +1, -1:3, 0)"
 }
 
 ###################################
