@@ -11,9 +11,9 @@ fail2ban() {
   sed -i '0,/action =/s/backend = auto/backend = systemd/' /etc/fail2ban/jail.conf
 
   # Declare Variables
-  log_folder="${XCORE_LOG_FOLDER:=/var/log}"
-  iplimit_log_path="${log_folder}/xcore.log"
-  iplimit_banned_log_path="${log_folder}/xcore-banned.log"
+  log_folder="${V2RAY_STAT_LOG_FOLDER:=/var/log}"
+  iplimit_log_path="${log_folder}/v2ray-stat.log"
+  iplimit_banned_log_path="${log_folder}/v2ray-stat-banned.log"
 
   # Use default bantime if not passed => 30 minutes
   local bantime="${1:-1}"
@@ -28,26 +28,26 @@ fail2ban() {
     touch ${iplimit_log_path}
   fi
 
-  cat << EOF > /etc/fail2ban/jail.d/xcore.conf
-[xcore]
+  cat << EOF > /etc/fail2ban/jail.d/v2ray-stat.conf
+[v2ray-stat]
 enabled=true
 backend=auto
-filter=xcore
-action=xcore
+filter=v2ray-stat
+action=v2ray-stat
 logpath=${iplimit_log_path}
 maxretry=2
 findtime=92
 bantime=${bantime}m
 EOF
 
-  cat << EOF > /etc/fail2ban/filter.d/xcore.conf
+  cat << EOF > /etc/fail2ban/filter.d/v2ray-stat.conf
 [Definition]
 datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
 failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
 ignoreregex =
 EOF
 
-  cat << EOF > /etc/fail2ban/action.d/xcore.conf
+  cat << EOF > /etc/fail2ban/action.d/v2ray-stat.conf
 [INCLUDES]
 before = iptables-allports.conf
 
