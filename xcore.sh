@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.64'
+VERSION_MANAGER='0.9.65'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -255,50 +255,45 @@ E[108]="2. Reset inbound traffic statistics"
 R[108]="2. Сбросить статистику трафика инбаундов"
 E[109]="3. Reset client traffic statistics"
 R[109]="3. Сбросить статистику трафика клиентов"
-E[110]="DNS statistics cleared"
-R[110]="Статистика DNS-запросов очищена"
-E[111]="Error clearing DNS statistics"
-R[111]="Ошибка при очистке статистики DNS-запросов"
-E[112]="Inbound traffic statistics cleared"
-R[112]="Статистика трафика инбаундов очищена"
-E[113]="Error clearing inbound traffic statistics"
-R[113]="Ошибка при очистке статистики трафика инбаундов"
-E[114]="Client traffic statistics cleared"
-R[114]="Статистика трафика клиентов очищена"
-E[115]="Error clearing client traffic statistics"
-R[115]="Ошибка при очистке статистики трафика клиентов"
+E[110]="4. Reset network traffic statistics."
+R[110]="4. Сбросить статистику трафика network"
 
-E[116]="1. Add server chain for routing"
-R[116]="1. Добавить цепочку серверов для маршрутизации"
-E[117]="2. Remove server chain from configuration"
-R[117]="2. Удалить цепочку серверов из конфигурации"
-E[118]="Error adding server chain. Configuration update skipped."
-R[118]="Ошибка при добавлении цепочки серверов. Обновление конфигурации пропущено."
+E[111]="Client traffic statistics cleared"
+R[111]="Статистика очищена"
+E[112]="Error clearing client traffic statistics"
+R[112]="Ошибка при очистке статистики"
 
-E[119]="1. Show Xray server statistics"
-R[119]="1. Показать статистику Xray сервера"
-E[120]="2. View client DNS queries"
-R[120]="2. Просмотреть DNS-запросы клиентов"
-E[121]="3. Reset Xray server statistics"
-R[121]="3. Сбросить статистику Xray сервера"
-E[122]="4. Add new client"
-R[122]="4. Добавить нового клиента"
-E[123]="5. Delete client"
-R[123]="5. Удалить клиента"
-E[124]="6. Enable or disable client"
-R[124]="6. Включить или отключить клиента"
-E[125]="7. Set client IP address limit"
-R[125]="7. Установить лимит IP-адресов для клиента"
-E[126]="8. Update subscription auto-renewal status"
-R[126]="8. Обновить статус автопродления подписки"
-E[127]="9. Change subscription end date"
-R[127]="9. Изменить дату окончания подписки"
-E[128]="10. Synchronize client subscription configurations"
-R[128]="10. Синхронизировать конфигурации клиентских подписок"
-E[129]="11. Configure server chain"
-R[129]="11. Настроить цепочку серверов"
-E[130]="Enter 0 to exit (updates every 10 seconds): "
-R[130]="Введите 0 для выхода (обновление каждые 10 секунд): "
+E[117]="1. Add server chain for routing"
+R[117]="1. Добавить цепочку серверов для маршрутизации"
+E[118]="2. Remove server chain from configuration"
+R[118]="2. Удалить цепочку серверов из конфигурации"
+E[119]="Error adding server chain. Configuration update skipped."
+R[119]="Ошибка при добавлении цепочки серверов. Обновление конфигурации пропущено."
+
+E[120]="1. Show Xray server statistics"
+R[120]="1. Показать статистику Xray сервера"
+E[121]="2. View client DNS queries"
+R[121]="2. Просмотреть DNS-запросы клиентов"
+E[122]="3. Reset Xray server statistics"
+R[122]="3. Сбросить статистику Xray сервера"
+E[123]="4. Add new client"
+R[123]="4. Добавить нового клиента"
+E[124]="5. Delete client"
+R[124]="5. Удалить клиента"
+E[125]="6. Enable or disable client"
+R[125]="6. Включить или отключить клиента"
+E[126]="7. Set client IP address limit"
+R[126]="7. Установить лимит IP-адресов для клиента"
+E[127]="8. Update subscription auto-renewal status"
+R[127]="8. Обновить статус автопродления подписки"
+E[128]="9. Change subscription end date"
+R[128]="9. Изменить дату окончания подписки"
+E[129]="10. Synchronize client subscription configurations"
+R[129]="10. Синхронизировать конфигурации клиентских подписок"
+E[130]="11. Configure server chain"
+R[130]="11. Настроить цепочку серверов"
+E[131]="Enter 0 to exit (updates every 10 seconds): "
+R[131]="Введите 0 для выхода (обновление каждые 10 секунд): "
 
 ###################################
 ### HELP MESSAGE DISPLAY
@@ -2295,7 +2290,7 @@ show_traffic_statistics() {
 ###################################
 display_server_stats() {
   clear
-  curl -X GET http://127.0.0.1:9952/api/v1/stats
+  curl -X GET http://127.0.0.1:9952/api/v1/stats?mode=extended
 }
 
 ###################################
@@ -2317,7 +2312,7 @@ extract_haproxy_data() {
 ### ADD USER TO XRAY CONFIGURATION
 ###################################
 add_user_to_xray() {
-  curl -X POST http://127.0.0.1:9952/api/v1/add_user -d "email=${USERNAME}&uuid=${XRAY_UUID}&inbound=vless-in"
+  curl -X POST http://127.0.0.1:9952/api/v1/add_user -d "user=${USERNAME}&credential=${XRAY_UUID}&inboundTag=vless-in"
   # inboundnum=$(jq '[.inbounds[].tag] | index("vless-in")' ${DIR_XRAY}/config.json)
   # jq ".inbounds[${inboundnum}].settings.clients += [{\"email\":\"${USERNAME}\",\"id\":\"${XRAY_UUID}\"}]" "${DIR_XRAY}/config.json" > "${DIR_XRAY}/config.json.tmp" && mv "${DIR_XRAY}/config.json.tmp" "${DIR_XRAY}/config.json"
 }
@@ -2387,7 +2382,7 @@ delete_lua_uuid() {
 ### DELETE USER FROM XRAY SERVER CONFIG
 ###################################
 delete_from_xray_server() {
-  curl -X DELETE "http://127.0.0.1:9952/api/v1/delete_user?email=${USERNAME}&inbound=vless-in"
+  curl -X DELETE "http://127.0.0.1:9952/api/v1/delete_user?user=${USERNAME}&inboundTag=vless-in"
   # inboundnum=$(jq '[.inbounds[].tag] | index("vless-in")' ${DIR_XRAY}/config.json)
   # jq "del(.inbounds[${inboundnum}].settings.clients[] | select(.email==\"${USERNAME}\"))" "${DIR_XRAY}/config.json" > "${DIR_XRAY}/config.json.tmp" && mv "${DIR_XRAY}/config.json.tmp" "${DIR_XRAY}/config.json"
 }
@@ -2692,7 +2687,7 @@ update_user_parameter_get() {
 ###################################
 ### UPDATE USER PARAMETER VIA API
 ###################################
-update_user_parameter_get() {
+update_user_parameter_patch() {
   local param_name="$1"  # Название параметра, например "lim_ip", "renew", "offset", "count"
   local api_url="$2"     # URL для GET-запроса
   local prompt="$3"      # Текст для запроса нового значения
@@ -2810,7 +2805,7 @@ reset_stats_menu() {
     info " $(text 107) "    # 1. Clear DNS query statistics
     info " $(text 108) "    # 2. Reset inbound traffic statistics
     info " $(text 109) "    # 3. Reset client traffic statistics
-    info " 4. Сброс трафика network "    # 4. Сброс трафика network
+    info " $(text 110) "    # 4. Сброс трафика network
     echo
     warning " $(text 84) "  # 0. Previous menu
     tilda "|--------------------------------------------------------------------------|"
@@ -2818,19 +2813,19 @@ reset_stats_menu() {
     reading " $(text 1) " CHOICE_MENU
     case $CHOICE_MENU in
       1)
-        curl -s -X POST http://127.0.0.1:9952/api/v1/delete_dns_stats && info " $(text 110) " || warning " $(text 111) "
+        curl -s -X POST http://127.0.0.1:9952/api/v1/delete_dns_stats && info " $(text 111) " || warning " $(text 112) "
         sleep 2
         ;;
       2)
-        curl -s -X POST http://127.0.0.1:9952/api/v1/reset_traffic_stats && info " $(text 112) " || warning " $(text 113) "
+        curl -s -X POST http://127.0.0.1:9952/api/v1/reset_traffic_stats && info " $(text 111) " || warning " $(text 112) "
         sleep 2
         ;;
       3)
-        curl -s -X POST http://127.0.0.1:9952/api/v1/reset_clients_stats && info " $(text 114) " || warning " $(text 115) "
+        curl -s -X POST http://127.0.0.1:9952/api/v1/reset_clients_stats && info " $(text 111) " || warning " $(text 112) "
         sleep 2
         ;;
       4)
-        curl -s -X POST http://127.0.0.1:9952/api/v1/reset_traffic && info " Сброс трафика network " || warning " Фигня заглушка "
+        curl -s -X POST http://127.0.0.1:9952/api/v1/reset_traffic && info " $(text 111) " || warning " $(text 112) "
         sleep 2
         ;;
       0) break ;;
@@ -2847,8 +2842,8 @@ manage_xray_chain_menu() {
     clear
     display_xcore_banner
     tilda "|--------------------------------------------------------------------------|"
-    info " $(text 116) "    # 1. Add server chain for routing
-    info " $(text 117) "    # 2. Remove server chain from configuration
+    info " $(text 117) "    # 1. Add server chain for routing
+    info " $(text 118) "    # 2. Remove server chain from configuration
     echo
     warning " $(text 84) "  # 0. Previous menu
     tilda "|--------------------------------------------------------------------------|"
@@ -2862,7 +2857,7 @@ manage_xray_chain_menu() {
           update_xray_chain_outbounds
           systemctl restart xray
         else
-          warning " $(text 118) "
+          warning " $(text 119) "
           sleep 3
         fi
         ;;
@@ -2882,20 +2877,20 @@ manage_xray_core() {
     extract_haproxy_data
     display_xcore_banner
     tilda "|--------------------------------------------------------------------------|"
-    info " $(text 119) "    # 1. Show Xray server statistics
-    info " $(text 120) "    # 2. View client DNS queries
-    info " $(text 121) "    # 3. Reset Xray server statistics
+    info " $(text 120) "    # 1. Show Xray server statistics
+    info " $(text 121) "    # 2. View client DNS queries
+    info " $(text 122) "    # 3. Reset Xray server statistics
     echo
-    info " $(text 122) "    # 4. Add new client
-    info " $(text 123) "    # 5. Delete client
-    info " $(text 124) "    # 6. Enable or disable client
+    info " $(text 123) "    # 4. Add new client
+    info " $(text 124) "    # 5. Delete client
+    info " $(text 125) "    # 6. Enable or disable client
     echo
-    info " $(text 125) "    # 7. Set client IP address limit
-    info " $(text 126) "    # 8. Update subscription auto-renewal status
-    info " $(text 127) "    # 9. Change subscription end date
+    info " $(text 126) "    # 7. Set client IP address limit
+    info " $(text 127) "    # 8. Update subscription auto-renewal status
+    info " $(text 128) "    # 9. Change subscription end date
     echo
-    info " $(text 128) "    # 10. Synchronize client subscription configurations
-    info " $(text 129) "    # 11. Configure server chain
+    info " $(text 129) "    # 10. Synchronize client subscription configurations
+    info " $(text 130) "    # 11. Configure server chain
     echo
     warning " $(text 84) "  # 0. Previous menu
     tilda "|--------------------------------------------------------------------------|"
@@ -2906,7 +2901,7 @@ manage_xray_core() {
       1)
         while true; do
           display_server_stats
-          echo -n "$(text 130) "
+          echo -n "$(text 131) "
           read -t 10 -r STATS_CHOICE
           [[ "$STATS_CHOICE" == "0" ]] && break
         done
