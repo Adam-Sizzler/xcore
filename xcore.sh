@@ -2312,7 +2312,7 @@ extract_haproxy_data() {
 ### ADD USER TO XRAY CONFIGURATION
 ###################################
 add_user_to_xray() {
-  curl -X POST http://127.0.0.1:9952/api/v1/add_user -d "user=${USERNAME}&credential=${XRAY_UUID}&inboundTag=vless-in"
+  curl -s -X POST http://127.0.0.1:9952/api/v1/add_user -d "user=${USERNAME}&credential=${XRAY_UUID}&inboundTag=vless-in"
   # inboundnum=$(jq '[.inbounds[].tag] | index("vless-in")' ${DIR_XRAY}/config.json)
   # jq ".inbounds[${inboundnum}].settings.clients += [{\"email\":\"${USERNAME}\",\"id\":\"${XRAY_UUID}\"}]" "${DIR_XRAY}/config.json" > "${DIR_XRAY}/config.json.tmp" && mv "${DIR_XRAY}/config.json.tmp" "${DIR_XRAY}/config.json"
 }
@@ -2337,23 +2337,20 @@ add_new_user() {
         if [[ -f /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json ]]; then
           echo "Пользователь $USERNAME уже добавлен. Попробуйте другое имя."
           echo
-          continue  # Повтор запроса имени
+          continue
         fi
 
         read XRAY_UUID < <(generate_uuid)
 
-        DOMAIN=$CURR_DOMAIN
-
-        # Добавление пользователя
-        configure_xray_client
-
-        # Добавление в файл /etc/haproxy/.auth.lua
-        sed -i "/local passwords = {/a \  [\"$XRAY_UUID\"] = true," ${DIR_HAPROXY}/.auth.lua
-
-        # Добавляем нового пользователя
         add_user_to_xray
 
-        systemctl reload nginx && systemctl reload haproxy && systemctl restart xray
+        DOMAIN=$CURR_DOMAIN
+
+        configure_xray_client
+
+        sed -i "/local passwords = {/a \  [\"$XRAY_UUID\"] = true," ${DIR_HAPROXY}/.auth.lua
+
+        systemctl reload haproxy && systemctl restart xray
 
         echo "Пользователь $USERNAME добавлен."
         echo
@@ -2709,7 +2706,7 @@ update_user_parameter_patch() {
     info " (Выбрано значение $param_name: $param_value)"
     # Если последний выбранный номер существует, предлагаем его по умолчанию
     if [ -n "$last_selected_num" ]; then
-      read -p " Введите номера пользователей (0 - выход, 'reset' - изменить $param_name, Enter - последний выбор $last_selected_num): " choice
+      read -p " Введите номера пользователей (0 - выход, 'reset' - изменить $param_name): " choice
     else
       read -p " Введите номера пользователей (0 - выход, 'reset' - изменить $param_name): " choice
     fi
@@ -2745,7 +2742,7 @@ update_user_parameter_patch() {
     # Обновляем параметр для выбранных пользователей и запоминаем последний номер
     for num in "${choices[@]}"; do
       selected_email="${user_map[$((num-1))]}"
-      curl -s -X GET "${api_url}?email=${selected_email}&$param_name=${param_value}"
+      curl -s -X PATCH "${api_url}?user=${selected_email}&$param_name=${param_value}"
       # Запоминаем последний выбранный номер
       last_selected_num="$num"
     done
