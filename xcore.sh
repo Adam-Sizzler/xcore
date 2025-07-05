@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.67'
+VERSION_MANAGER='0.9.70'
 VERSION_XRAY='v25.3.6'
 
 DIR_XCORE="/opt/xcore"
@@ -1208,7 +1208,8 @@ swapfile() {
   mkswap /swapfile
   swapon /swapfile
   swapon --show
-
+  
+  chmod +x "${DIR_XCORE}/repo/cron_jobs/restart_warp.sh"
   # crontab -l | grep -v -- "restart_warp.sh" | crontab -
   schedule_cron_job "* * * * * ${DIR_XCORE}/repo/cron_jobs/restart_warp.sh"
 }
@@ -1284,7 +1285,8 @@ EOF
     fi
   done
 
-  crontab -l | grep -v -- "cert_renew.sh" | crontab -
+  chmod +x "${DIR_XCORE}/repo/cron_jobs/cert_renew.sh"
+  # crontab -l | grep -v -- "cert_renew.sh" | crontab -
   schedule_cron_job "20 5 */3 * * ${DIR_XCORE}/repo/cron_jobs/cert_renew.sh"
 
   tilda "$(text 10)"
@@ -1619,10 +1621,11 @@ EOF
 ### DOWNLOAD AND SCHEDULE GEOLITE2 DATABASE UPDATES
 ###################################
 schedule_geolite2_updates() {
-  bash "${DIR_XCORE}/repo/cron_jobs/geolite2_update.sh"
-
-  crontab -l | grep -v -- "geolite2_update.sh" | crontab -
+  chmod +x "${DIR_XCORE}/repo/cron_jobs/geolite2_update.sh"
+  # crontab -l | grep -v -- "geolite2_update.sh" | crontab -
   schedule_cron_job "20 5 */3 * * ${DIR_XCORE}/repo/cron_jobs/geolite2_update.sh"
+
+  bash "${DIR_XCORE}/repo/cron_jobs/geolite2_update.sh"
 }
 
 ###################################
@@ -1945,6 +1948,7 @@ configure_xray_client() {
   cp -r ${DIR_XCORE}/repo/conf_template/client_raw.json /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json
 
   sed -i \
+    -e "s/IP_TEMP/${IP4}/g" \
     -e "s/DOMAIN_TEMP/${DOMAIN}/g" \
     -e "s/UUID_TEMP/${XRAY_UUID}/g" \
     "/var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json"
@@ -1967,10 +1971,10 @@ setup_xray_client() {
 ###################################
 setup_xcore_service() {
   chmod +x "${DIR_XCORE}/repo/cron_jobs/get_v2ray-stat.sh"
-  bash "${DIR_XCORE}/repo/cron_jobs/get_v2ray-stat.sh"
-
   # crontab -l | grep -v -- "get_v2ray-stat.sh" | crontab -
   schedule_cron_job "0 5 * * 1 ${DIR_XCORE}/repo/cron_jobs/get_v2ray-stat.sh"
+
+  bash "${DIR_XCORE}/repo/cron_jobs/get_v2ray-stat.sh"
 }
 
 ###################################
@@ -2157,10 +2161,10 @@ show_directory_size() {
 ###################################
 create_backup_script() {
   chmod +x "${DIR_XCORE}/repo/cron_jobs/backup_dir.sh"
-  bash "${DIR_XCORE}/repo/cron_jobs/backup_dir.sh"
-
-  #crontab -l | grep -v -- "backup_dir.sh" | crontab -
+  # crontab -l | grep -v -- "backup_dir.sh" | crontab -
   schedule_cron_job "5 5 * * * ${DIR_XCORE}/repo/cron_jobs/backup_dir.sh"
+
+  bash "${DIR_XCORE}/repo/cron_jobs/backup_dir.sh"
 }
 
 ###################################
@@ -2168,10 +2172,10 @@ create_backup_script() {
 ###################################
 create_rotation_script() {
   chmod +x "${DIR_XCORE}/repo/cron_jobs/rotation_backup.sh"
-  bash "${DIR_XCORE}/repo/cron_jobs/rotation_backup.sh"
-
-  #crontab -l | grep -v -- "rotation_backup.sh" | crontab -
+  # crontab -l | grep -v -- "rotation_backup.sh" | crontab -
   schedule_cron_job "10 5 * * * ${DIR_XCORE}/repo/cron_jobs/rotation_backup.sh"
+
+  bash "${DIR_XCORE}/repo/cron_jobs/rotation_backup.sh"
 }
 
 ###################################
