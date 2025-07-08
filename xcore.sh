@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.77'
+VERSION_MANAGER='0.9.78'
 VERSION_XRAY='v25.6.8'
 
 DIR_XCORE="/opt/xcore"
@@ -2643,7 +2643,7 @@ display_user_list() {
   fi
 
   # Парсим JSON, извлекая email и указанное поле
-  mapfile -t users < <(echo "$response" | jq -r --arg field "$field" '.[] | [.email, .[$field]] | join("|")')
+  mapfile -t users < <(echo "$response" | jq -r --arg field "$field" '.[] | [.user, .[$field]] | join("|")')
 
   if [ ${#users[@]} -eq 0 ]; then
     info "Нет пользователей для отображения"
@@ -2664,14 +2664,13 @@ display_user_list() {
   return 0
 }
 
-
 ###################################
 ### UPDATE USER PARAMETER VIA API
 ###################################
 update_user_parameter_get() {
-  local param_name="$1"  # Название параметра, например "lim_ip", "renew", "offset", "count"
-  local api_url="$2"     # URL для GET-запроса
-  local prompt="$3"      # Текст для запроса нового значения
+  local param_name="$1"
+  local api_url="$2"
+  local prompt="$3"
 
   local param_value
 
@@ -2715,7 +2714,7 @@ update_user_parameter_get() {
     # Обновляем параметр для выбранных пользователей
     for num in "${choices[@]}"; do
       selected_email="${user_map[$((num-1))]}"
-      curl -s -X GET "${api_url}?email=${selected_email}&$param_name=${param_value}"
+      curl -s -X GET "${api_url}?user=${selected_email}&$param_name=${param_value}"
     done
   done
 }
