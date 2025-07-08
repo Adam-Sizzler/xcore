@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.75'
+VERSION_MANAGER='0.9.77'
 VERSION_XRAY='v25.6.8'
 
 DIR_XCORE="/opt/xcore"
@@ -1677,7 +1677,7 @@ setup_nginx() {
   configure_nginx_root_location
   configure_nginx_hidden_files
   configure_nginx_sub_page
-  configure_nginx_geoip_check
+  # configure_nginx_geoip_check
   schedule_geolite2_updates
 
   systemctl daemon-reload
@@ -2111,14 +2111,15 @@ mirror_website() {
 ### CHANGE DOMAIN NAME AND UPDATE CONFIGS
 ###################################
 change_domain_name() {
-  extract_haproxy_data
+  extract_data
 
   validate_cloudflare_token
   issue_certificates
   cat /etc/letsencrypt/live/${DOMAIN}/fullchain.pem /etc/letsencrypt/live/${DOMAIN}/privkey.pem > /etc/haproxy/certs/${DOMAIN}.pem
   sed -i -e "s/${CURR_DOMAIN}/${DOMAIN}/g" ${DIR_HAPROXY}/haproxy.cfg
 
-  systemctl restart haproxy
+  nginx -s reload
+  haproxy -c -f ${DIR_HAPROXY}/haproxy.cfg && systemctl restart haproxy
   tilda "$(text 10)"
 }
 
@@ -2127,33 +2128,41 @@ change_domain_name() {
 ###################################
 reissue_certificates() {
   # Получение домена
-  extract_haproxy_data
+  extract_data
 
   # Проверка наличия сертификатов
   if [ ! -d /etc/letsencrypt/live/${CURR_DOMAIN} ]; then
     validate_cloudflare_token
     issue_certificates
   else
-    certbot renew --force-renewal
+    bash "${DIR_XCORE}/repo/cron_jobs/cert_renew.sh"
     if [ $? -ne 0 ]; then
       return 1
     fi
   fi
 
-  # Перезапуск Nginx
-  systemctl restart nginx
+  nginx -s reload
+  haproxy -c -f ${DIR_HAPROXY}/haproxy.cfg && systemctl restart haproxy
 }
 
 ###################################
 ### DISPLAY DIRECTORY SIZE AND SYSTEM STORAGE
 ###################################
 show_directory_size() {
-  read -e -p "Enter a directory: " DIRECTORY
-  echo
-  free -h
-  echo
-  du -ah ${DIRECTORY} --max-depth=1 | grep -v '/$' | sort -rh | head -10
-  echo
+  while true; do
+    read -e -p "Enter a directory (press Enter to exit): " DIRECTORY
+    if [ -z "$DIRECTORY" ]; then
+      echo "Exiting directory size view."
+      break
+    fi
+    if [ ! -d "$DIRECTORY" ]; then
+      echo "Error: '$DIRECTORY' is not a valid directory."
+      continue
+    fi
+    echo
+    du -ah "${DIRECTORY}" --max-depth=1 | grep -v '/$' | sort -rh | head -20
+    echo
+  done
 }
 
 ###################################
@@ -2310,16 +2319,27 @@ display_server_stats() {
 ###################################
 ### EXTRACT DATA FROM HAPROXY CONFIG
 ###################################
-extract_haproxy_data() {
+extract_data() {
   SUB_JSON_PATH=""
   for dir in /var/www/*/ ; do
       dir_name=$(basename "$dir")
       [ ${#dir_name} -eq 30 ] && SUB_JSON_PATH="$dir_name" && break
   done
+  if [[ -z "$SUB_JSON_PATH" ]]; then
+    error "Ошибка: директория с длиной имени 30 символов не найдена в /var/www/"
+  fi
 
-  local CONFIG_FILE_HAPROXY="/etc/haproxy/haproxy.cfg"
+  local CONFIG_FILE_HAPROXY="${DIR_HAPROXY}/haproxy.cfg"
   detect_external_ip
   CURR_DOMAIN=$(grep -oP 'crt /etc/haproxy/certs/\K[^.]+(?:\.[^.]+)+(?=\.pem)' "$CONFIG_FILE_HAPROXY")
+  if [[ -z "$CURR_DOMAIN" ]]; then
+    error "Ошибка: не удалось извлечь домен из haproxy.cfg"
+  fi
+
+  echo $SUB_JSON_PATH
+  echo $CURR_DOMAIN
+  echo $CONFIG_FILE_HAPROXY
+  echo $IP4
 }
 
 ###################################
@@ -2327,8 +2347,6 @@ extract_haproxy_data() {
 ###################################
 add_user_to_xray() {
   curl -s -X POST http://127.0.0.1:9952/api/v1/add_user -d "user=${USERNAME}&credential=${XRAY_UUID}&inboundTag=vless-in"
-  # inboundnum=$(jq '[.inbounds[].tag] | index("vless-in")' ${DIR_XRAY}/config.json)
-  # jq ".inbounds[${inboundnum}].settings.clients += [{\"email\":\"${USERNAME}\",\"id\":\"${XRAY_UUID}\"}]" "${DIR_XRAY}/config.json" > "${DIR_XRAY}/config.json.tmp" && mv "${DIR_XRAY}/config.json.tmp" "${DIR_XRAY}/config.json"
 }
 
 ###################################
@@ -2348,8 +2366,14 @@ add_new_user() {
         echo "Имя пользователя не может быть пустым. Попробуйте снова."
         ;;
       *)
+        if jq -e ".inbounds[] | select(.tag == \"vless-in\") | .settings.clients[] | select(.email == \"$USERNAME\")" "${DIR_XRAY}/config.json" > /dev/null; then
+          echo "Пользователь $USERNAME уже добавлен в Xray. Попробуйте другое имя."
+          echo
+          continue
+        fi
+
         if [[ -f /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json ]]; then
-          echo "Пользователь $USERNAME уже добавлен. Попробуйте другое имя."
+          echo "Файл конфигурации для $USERNAME уже существует. Удалите его или выберите другое имя."
           echo
           continue
         fi
@@ -2357,16 +2381,19 @@ add_new_user() {
         read XRAY_UUID < <(generate_uuid)
 
         add_user_to_xray
+        if [[ $? -ne 0 ]]; then
+          echo "Не удалось добавить пользователя через API. Пробуем обновить config.json напрямую..."
+          inboundnum=$(jq '[.inbounds[].tag] | index("vless-in")' ${DIR_XRAY}/config.json)
+          jq ".inbounds[${inboundnum}].settings.clients += [{\"email\":\"${USERNAME}\",\"id\":\"${XRAY_UUID}\"}]" "${DIR_XRAY}/config.json" > "${DIR_XRAY}/config.json.tmp" && mv "${DIR_XRAY}/config.json.tmp" "${DIR_XRAY}/config.json"
 
+          sed -i "/local users = {/,/}/ s/}/  [\"${USERNAME}\"] = \"${XRAY_UUID}\",\n}/" "${DIR_HAPROXY}/.auth.lua"
+        fi
         DOMAIN=$CURR_DOMAIN
-
         configure_xray_client
-
-        # sed -i "/local passwords = {/a \  [\"$XRAY_UUID\"] = true," ${DIR_HAPROXY}/.auth.lua
 
         systemctl reload haproxy && systemctl restart xray
 
-        echo "Пользователь $USERNAME добавлен."
+        echo "Пользователь $USERNAME добавлен с UUID: $XRAY_UUID"
         echo
         ;;
     esac
@@ -2382,20 +2409,11 @@ delete_subscription_config() {
   fi
 }
 
-###################################
-### DELETE USER UUID FROM LUA CONFIG
-###################################
-delete_lua_uuid() {
-  sed -i "/\[\"${XRAY_UUID}\"\] = .*/d" ${DIR_HAPROXY}/.auth.lua
-}
-
 ##################################
 ### DELETE USER FROM XRAY SERVER CONFIG
 ###################################
 delete_from_xray_server() {
   curl -X DELETE "http://127.0.0.1:9952/api/v1/delete_user?user=${USERNAME}&inboundTag=vless-in"
-  # inboundnum=$(jq '[.inbounds[].tag] | index("vless-in")' ${DIR_XRAY}/config.json)
-  # jq "del(.inbounds[${inboundnum}].settings.clients[] | select(.email==\"${USERNAME}\"))" "${DIR_XRAY}/config.json" > "${DIR_XRAY}/config.json.tmp" && mv "${DIR_XRAY}/config.json.tmp" "${DIR_XRAY}/config.json"
 }
 
 ###################################
@@ -2447,9 +2465,16 @@ delete_user() {
           if [[ -n "${user_map[$choice]}" ]]; then
             IFS=' ' read -r USERNAME XRAY_UUID <<< "${user_map[$choice]}"
             echo "Вы выбрали: $USERNAME (ID: $XRAY_UUID)"
-            delete_subscription_config
-            # delete_lua_uuid
+            
             delete_from_xray_server
+            if [[ $? -ne 0 ]]; then
+              echo "Не удалось удалить пользователя через API. Пробуем обновить config.json напрямую..."
+              inboundnum=$(jq '[.inbounds[].tag] | index("vless-in")' ${DIR_XRAY}/config.json)
+              jq "del(.inbounds[${inboundnum}].settings.clients[] | select(.email==\"${USERNAME}\"))" "${DIR_XRAY}/config.json" > "${DIR_XRAY}/config.json.tmp" && mv "${DIR_XRAY}/config.json.tmp" "${DIR_XRAY}/config.json"
+
+              sed -i "/\[\"${USERNAME//\"/\\\"}\"\] = \".*\",/d" "${DIR_HAPROXY}/.auth.lua"
+            fi
+            delete_subscription_config
           else
             echo "Некорректный номер: $choice"
           fi
@@ -2885,7 +2910,7 @@ manage_xray_chain_menu() {
 manage_xray_core() {
   while true; do
     clear
-    extract_haproxy_data
+    extract_data
     display_xcore_banner
     tilda "|--------------------------------------------------------------------------|"
     info " $(text 120) "    # 1. Show Xray server statistics
@@ -3000,7 +3025,10 @@ manage_xcore() {
       3) change_domain_name ;;
       4) reissue_certificates ;;
       5) mirror_website ;;
-      6) show_directory_size ;;
+      6) 
+        free -h
+        echo
+        show_directory_size ;;
       7) show_traffic_statistics ;;
       8) update_xray ;;
       9)
