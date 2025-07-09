@@ -2539,7 +2539,7 @@ add_xray_chain_outbounds() {
   remote_outbound=$(jq -c '.outbounds
     | map(select(.tag=="vless-out"))
     | .[0]
-    | if . then (.tag="vless_out_chain") else empty end' \
+    | if . then (.tag="vless-out-chain") else empty end' \
   <<<"$body")
 
   if [[ -z "$remote_outbound" ]]; then
@@ -2574,10 +2574,6 @@ update_xray_chain_outbounds() {
         "outboundTag": "api"
       },
       {
-        "protocol": ["bittorrent"],
-        "outboundTag": "direct"
-      },
-      {
         "ip": ["geoip:private"],
         "outboundTag": "direct"
       },
@@ -2589,9 +2585,7 @@ update_xray_chain_outbounds() {
           "keyword:analytics",
           "keyword:telemetry",
           "keyword:bongacams",
-          "keyword:tracking",
-          "vkuser.net",
-          "okcdn.ru"
+          "keyword:tracking"
         ],
         "outboundTag": "block"
       }
