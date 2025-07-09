@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.78'
+VERSION_MANAGER='0.9.79'
 VERSION_XRAY='v25.6.8'
 
 DIR_XCORE="/opt/xcore"
@@ -1617,6 +1617,23 @@ location = /geoip-check {
 EOF
 }
 
+configure_nginx_v2ray() {
+  cat > /etc/nginx/locations/v2ray-stat.conf <<EOF
+location /statistics-v2ray-stat/ {
+  access_log off;
+  proxy_pass http://127.0.0.1:9952/;
+
+  # Добавляем заголовок с IP клиента
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header Host $host;
+
+  # Автообновление страницы каждые 10 секунд
+  add_header Refresh "10; URL=$scheme://$http_host$request_uri";
+}
+EOF
+}
+
 ###################################
 ### DOWNLOAD AND SCHEDULE GEOLITE2 DATABASE UPDATES
 ###################################
@@ -1678,7 +1695,9 @@ setup_nginx() {
   configure_nginx_hidden_files
   configure_nginx_sub_page
   # configure_nginx_geoip_check
+  configure_nginx_v2ray
   schedule_geolite2_updates
+  configure_nginx_logrotate
 
   systemctl daemon-reload
   systemctl restart nginx
