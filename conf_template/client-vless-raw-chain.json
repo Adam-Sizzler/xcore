@@ -1,5 +1,5 @@
 {
-  "remarks": "HAPROXY",
+  "remarks": "CHAIN",
   "log": {
     "dnsLog": false,
     "loglevel": "warnin"
