@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='0.9.84'
+VERSION_MANAGER='1.0.0'
 VERSION_XRAY='v25.6.8'
 
 DIR_XCORE="/opt/xcore"
@@ -2603,8 +2603,6 @@ add_xray_config_chain() {
     sleep 3
     return 1
   fi
-
-  echo $remote_outbound
 
   # Извлекаем массив clients из inbound с тегом "vless-in" из config.json
   clients=$(jq -c '.inbounds[] | select(.tag=="vless-in") | .settings.clients' "${DIR_XRAY}/config.json")
