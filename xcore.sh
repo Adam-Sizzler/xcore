@@ -1868,7 +1868,7 @@ install_xray() {
 ### CONFIGURE XRAY SERVER SETTINGS
 ###################################
 configure_xray_server() {
-  cp -f ${DIR_XCORE}/repo/conf_template/server_raw.json ${DIR_XRAY}/config.json
+  cp -f ${DIR_XCORE}/repo/conf_template/server-vless-raw.json ${DIR_XRAY}/config.json
 
   sed -i \
     -e "s/USERNAME_TEMP/${USERNAME}/g" \
@@ -1964,7 +1964,7 @@ setup_xray_subscription_page() {
 ### CONFIGURE XRAY CLIENT SETTINGS
 ###################################
 configure_xray_client() {
-  cp -r ${DIR_XCORE}/repo/conf_template/client_raw.json /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json
+  cp -r ${DIR_XCORE}/repo/conf_template/client-vless-raw.json /var/www/${SUB_JSON_PATH}/vless_raw/${USERNAME}.json
 
   sed -i \
     -e "s/IP_TEMP/${IP4}/g" \
@@ -2520,7 +2520,7 @@ sync_client_configs() {
     CLIENT=$(jq ".outbounds[${OUT_VL_NUM}].settings.vnext[].users[]" $FILE_PATH)
 
     rm -rf ${FILE_PATH}
-    cp -r ${DIR_XCORE}/repo/conf_template/client_raw.json ${FILE_PATH}
+    cp -r ${DIR_XCORE}/repo/conf_template/client-vless-raw.json ${FILE_PATH}
 
     echo "$(jq ".outbounds[${OUT_VL_NUM}].settings.vnext[].users[] = ${CLIENT}" ${FILE_PATH})" > $FILE_PATH
 
@@ -2576,7 +2576,7 @@ add_xray_chain_outbounds() {
 ### UPDATE XRAY CHAIN OUTBOUNDS
 ###################################
 update_xray_chain_outbounds() {
-  local CLIENT_TEMPLATE="${DIR_XCORE}/repo/conf_template/client_raw.json"
+  local CLIENT_TEMPLATE="${DIR_XCORE}/repo/conf_template/client-vless-raw.json"
   local SERVER_TEMPLATE="${DIR_XRAY}/config.json"
 
   server_dns=$(jq -c '.dns' "${CLIENT_TEMPLATE}")
