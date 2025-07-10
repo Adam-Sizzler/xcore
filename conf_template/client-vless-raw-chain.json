@@ -72,27 +72,24 @@
       "routeOnly": false,
       "metadataOnly": false
     },
-  {
-    "tag": "dns-in",
-    "listen": "0.0.0.0",
-    "port": 53,
-    "protocol": "dokodemo-door",
-    "settings": {
-      "network": "udp",
-      "followRedirect": true
-    }
-  },
     {
-      "tag": "api",
+      "tag": "dns-in",
+      "listen": "0.0.0.0",
+      "port": 53,
+      "protocol": "dokodemo-door",
+      "settings": {
+        "network": "udp",
+        "followRedirect": true
+      }
+    },
+    {
       "listen": "127.0.0.1",
-      "port": 10085,
+      "port": 9953,
       "protocol": "dokodemo-door",
       "settings": {
         "address": "127.0.0.1"
       },
-      "streamSettings": null,
-      "sniffing": null,
-      "allocate": null
+      "tag": "api",
     }
   ],
   "outbounds": [
