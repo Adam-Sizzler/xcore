@@ -7,7 +7,7 @@
 ###################################
 ### GLOBAL CONSTANTS AND VARIABLES
 ###################################
-VERSION_MANAGER='1.0.0'
+VERSION_MANAGER='1.0.1'
 VERSION_XRAY='v25.6.8'
 
 DIR_XCORE="/opt/xcore"
@@ -2132,6 +2132,12 @@ mirror_website() {
   systemctl restart nginx.service
 }
 
+change_domain_subscription() {
+  # Найти все обычные файлы (не каталоги) и заменить текст
+  find "/var/www/${SUB_JSON_PATH}" -type f -exec sed -i "s|$CURR_DOMAIN|$DOMAIN|g" {} +
+  echo "Завершено: все вхождения '$CURR_DOMAIN' заменены на '$DOMAIN'"
+}
+
 ###################################
 ### CHANGE DOMAIN NAME AND UPDATE CONFIGS
 ###################################
@@ -2140,11 +2146,14 @@ change_domain_name() {
 
   validate_cloudflare_token
   issue_certificates
+
   cat /etc/letsencrypt/live/${DOMAIN}/fullchain.pem /etc/letsencrypt/live/${DOMAIN}/privkey.pem > /etc/haproxy/certs/${DOMAIN}.pem
   sed -i -e "s/${CURR_DOMAIN}/${DOMAIN}/g" ${DIR_HAPROXY}/haproxy.cfg
 
   nginx -s reload
   haproxy -c -f ${DIR_HAPROXY}/haproxy.cfg && systemctl restart haproxy
+
+  change_domain_subscription
   tilda "$(text 10)"
 }
 
