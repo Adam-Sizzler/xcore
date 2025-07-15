@@ -26,12 +26,6 @@
         "outboundTag": "api"
       },
       {
-        "protocol": [
-          "bittorrent"
-        ],
-        "outboundTag": "direct"
-      },
-      {
         "ip": [
           "geoip:private"
         ],
