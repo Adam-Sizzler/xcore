@@ -1616,11 +1616,14 @@ location = /geoip-check {
 EOF
 }
 
-configure_nginx_v2ray() {
+###################################
+### CONFIGURE NGINX V2RAY-STAT
+###################################
+configure_nginx_v2ray_stat() {
   cat > /etc/nginx/locations/v2ray-stat.conf <<EOF
-location /statistics-v2ray-stat/ {
+location /v2rs-statistics/ {
   access_log off;
-  proxy_pass http://127.0.0.1:9952/;
+  proxy_pass http://127.0.0.1:9243/api/v1;
 
   # Добавляем заголовок с IP клиента
   proxy_set_header X-Real-IP \$remote_addr;
@@ -1629,6 +1632,23 @@ location /statistics-v2ray-stat/ {
 
   # Автообновление страницы каждые 10 секунд
   add_header Refresh "10; URL=\$scheme://\$http_host\$request_uri";
+}
+EOF
+}
+
+###################################
+### CONFIGURE NGINX V2RAY-SUB
+###################################
+configure_nginx_v2ray_sub() {
+  cat > /etc/nginx/locations/v2ray-stat.conf <<EOF
+location /v2rs-subscription/ {
+  access_log off;
+  proxy_pass http://127.0.0.1:9264/api/v1/;
+
+  # Добавляем заголовок с IP клиента
+  proxy_set_header X-Real-IP \$remote_addr;
+  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+  proxy_set_header Host \$host;
 }
 EOF
 }
@@ -1694,7 +1714,8 @@ setup_nginx() {
   configure_nginx_hidden_files
   configure_nginx_sub_page
   # configure_nginx_geoip_check
-  configure_nginx_v2ray
+  configure_nginx_v2ray_stat
+  configure_nginx_v2ray_sub
   schedule_geolite2_updates
   configure_nginx_logrotate
 
@@ -2346,7 +2367,7 @@ show_traffic_statistics() {
 ###################################
 display_server_stats() {
   clear
-  curl -X GET "http://127.0.0.1:9952/api/v1/stats"
+  curl -X GET "http://127.0.0.1:9243/api/v1/stats"
   echo -n "$(text 131) "
 }
 
@@ -2380,7 +2401,7 @@ extract_data() {
 ### ADD USER TO XRAY CONFIGURATION
 ###################################
 add_user_to_xray() {
-  curl -s -X POST http://127.0.0.1:9952/api/v1/add_user -d "user=${USERNAME}&credential=${XRAY_UUID}&inboundTag=vless-in"
+  curl -s -X POST http://127.0.0.1:9243/api/v1/add_user -d "user=${USERNAME}&credential=${XRAY_UUID}&inboundTag=vless-in"
 }
 
 ###################################
@@ -2447,7 +2468,7 @@ delete_subscription_config() {
 ### DELETE USER FROM XRAY SERVER CONFIG
 ###################################
 delete_from_xray_server() {
-  curl -X DELETE "http://127.0.0.1:9952/api/v1/delete_user?user=${USERNAME}&inboundTag=vless-in"
+  curl -X DELETE "http://127.0.0.1:9243/api/v1/delete_user?user=${USERNAME}&inboundTag=vless-in"
 }
 
 ###################################
@@ -2691,7 +2712,7 @@ remove_xray_config_chain() {
 ### DISPLAY USER LIST FROM API
 ###################################
 display_user_list() {
-  local API_URL="http://127.0.0.1:9952/api/v1/users"
+  local API_URL="http://127.0.0.1:9243/api/v1/users"
   local field="$1"  # Поле для извлечения, например "enabled", "lim_ip", "renew", "sub_end"
 
   declare -gA user_map
@@ -2853,35 +2874,35 @@ update_user_parameter_patch() {
 ### DNS
 ###################################
 fetch_dns_stats() {
-  update_user_parameter_get "count" "http://127.0.0.1:9952/api/v1/dns_stats" "Введите значение для вывода строк DNS запросов"
+  update_user_parameter_get "count" "http://127.0.0.1:9243/api/v1/dns_stats" "Введите значение для вывода строк DNS запросов"
 }
 
 ###################################
 ### TOGGLE USER STATUS VIA API
 ###################################
 toggle_user_status() {
-  update_user_parameter_patch "enabled" "http://127.0.0.1:9952/api/v1/set_enabled" "Введите true для включения и false отключения клиента"
+  update_user_parameter_patch "enabled" "http://127.0.0.1:9243/api/v1/set_enabled" "Введите true для включения и false отключения клиента"
 }
 
 ###################################
 ### SET IP LIMIT FOR USER
 ###################################
 set_user_lim_ip() {
-  update_user_parameter_patch "lim_ip" "http://127.0.0.1:9952/api/v1/update_lim_ip" "Введите лимит IP"
+  update_user_parameter_patch "lim_ip" "http://127.0.0.1:9243/api/v1/update_lim_ip" "Введите лимит IP"
 }
 
 ###################################
 ### UPDATE USER RENEWAL STATUS
 ###################################
 update_user_renewal() {
-  update_user_parameter_patch "renew" "http://127.0.0.1:9952/api/v1/update_renew" "Введите значение для продления подписки"
+  update_user_parameter_patch "renew" "http://127.0.0.1:9243/api/v1/update_renew" "Введите значение для продления подписки"
 }
 
 ###################################
 ### ADJUST USER SUBSCRIPTION END DATE
 ###################################
 adjust_subscription_date() {
-  update_user_parameter_patch "sub_end" "http://127.0.0.1:9952/api/v1/adjust_date" "Введите значение sub_end (например, +1d, -1d3h, 0)"
+  update_user_parameter_patch "sub_end" "http://127.0.0.1:9243/api/v1/adjust_date" "Введите значение sub_end (например, +1d, -1d3h, 0)"
 }
 
 ###################################
@@ -2910,19 +2931,19 @@ reset_stats_menu() {
     reading " $(text 1) " CHOICE_MENU
     case $CHOICE_MENU in
       1)
-        curl -s -X POST http://127.0.0.1:9952/api/v1/delete_dns_stats && info " $(text 111) " || warning " $(text 112) "
+        curl -s -X POST http://127.0.0.1:9243/api/v1/delete_dns_stats && info " $(text 111) " || warning " $(text 112) "
         sleep 2
         ;;
       2)
-        curl -s -X POST http://127.0.0.1:9952/api/v1/reset_traffic_stats && info " $(text 111) " || warning " $(text 112) "
+        curl -s -X POST http://127.0.0.1:9243/api/v1/reset_traffic_stats && info " $(text 111) " || warning " $(text 112) "
         sleep 2
         ;;
       3)
-        curl -s -X POST http://127.0.0.1:9952/api/v1/reset_clients_stats && info " $(text 111) " || warning " $(text 112) "
+        curl -s -X POST http://127.0.0.1:9243/api/v1/reset_clients_stats && info " $(text 111) " || warning " $(text 112) "
         sleep 2
         ;;
       4)
-        curl -s -X POST http://127.0.0.1:9952/api/v1/reset_traffic && info " $(text 111) " || warning " $(text 112) "
+        curl -s -X POST http://127.0.0.1:9243/api/v1/reset_traffic && info " $(text 111) " || warning " $(text 112) "
         sleep 2
         ;;
       0) break ;;
