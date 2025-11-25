@@ -3,7 +3,6 @@ function buildBaseSubscriptionUrl() {
     return domain + CONFIG.path;
 }
 const baseSubscriptionUrl = buildBaseSubscriptionUrl();
-
 const platformData = {
     windows: {
         apps: [
@@ -32,215 +31,265 @@ const platformData = {
         ]
     }
 };
-
 function updatePlatformContent() {
     const platform = document.getElementById("platformSelect").value;
     const platformContent = document.getElementById("platformContent");
     const appButtons = document.getElementById("appButtons");
     const qrContainer = document.getElementById("qrcode");
-
     platformContent.innerHTML = "";
     appButtons.innerHTML = "";
     qrContainer.innerHTML = "";
     qrContainer.classList.remove("active");
-
     if (platformData[platform]) {
         const apps = platformData[platform].apps;
         let contentHTML = "";
         let buttonsHTML = "";
-
         if (platform !== "manual") {
             contentHTML = `<h3>Скачать приложение</h3>`;
             let buttonGridHTML = `<div class="button-grid">`;
             apps.forEach((app) => {
+                const safeName = escapeHtml(app.name);
+                const safeUrl = escapeHtml(app.url);
                 buttonGridHTML += `
-                    <button class="button download-button" title="Скачать ${app.name}" onclick="window.open('${app.url}', '_blank')">
-                        <span class="button-icon">⬇</span> ${app.name}
+                    <button class="button download-button" title="Скачать ${safeName}" onclick="window.open('${safeUrl}', '_blank')">
+                        <span class="button-icon">⬇</span> ${safeName}
                     </button>
                 `;
             });
             buttonGridHTML += `</div>`;
             contentHTML += `<div class="app-section">${buttonGridHTML}</div>`;
         }
-
         apps.forEach(app => {
+            const safeName = escapeHtml(app.name);
+            const safeScheme = escapeHtml(app.scheme || '');
+            const safeClient = escapeHtml(app.client);
+            const safeAction = escapeHtml(app.action || '');
             buttonsHTML += `
                 <div class="app-section">
-                    <h4>${app.name}</h4>
+                    <h4>${safeName}</h4>
                     <div class="button-grid">
                         <button class="button mode-button" title="Базовый режим (Base64)"
-                                onclick="handleImport('${app.name}', '${app.scheme || ''}', '${app.client}', '${app.action || ''}', 'base', ${app.needsEncode || false}, ${app.useHash || false}, ${app.useName || false})">
+                                onclick="handleImport('${safeName}', '${safeScheme}', '${safeClient}', '${safeAction}', 'base', ${app.needsEncode || false}, ${app.useHash || false}, ${app.useName || false})">
                             <span class="mode-label">BASE</span> Базовый
                         </button>
                         <button class="button mode-button" title="Расширенный режим (JSON/YAML)"
-                                onclick="handleImport('${app.name}', '${app.scheme || ''}', '${app.client}', '${app.action || ''}', 'advanced', ${app.needsEncode || false}, ${app.useHash || false}, ${app.useName || false})">
+                                onclick="handleImport('${safeName}', '${safeScheme}', '${safeClient}', '${safeAction}', 'advanced', ${app.needsEncode || false}, ${app.useHash || false}, ${app.useName || false})">
                             <span class="mode-label">ADVANCED</span> Расширенный
                         </button>
                     </div>
                 </div>
             `;
         });
-
         platformContent.innerHTML = contentHTML;
         appButtons.innerHTML = buttonsHTML;
     }
 }
-
 function buildSubscriptionUrl(client, user, mode) {
     return `${baseSubscriptionUrl}?client=${client}&user=${encodeURIComponent(user)}&mode=${mode}`;
 }
-
-// Универсальная функция для генерации deep link для конкретного приложения
 function buildDeepLink(app, subscriptionUrl, displayName) {
     const scheme = app.scheme || '';
     const name = (displayName || '').trim() || 'Subscription';
-
     if (!scheme) return '';
-
-    // V2RayNG: v2rayng://install-sub/?url=urlencode(SUB_URL%23NAME)
     if (app.needsEncode) {
         const fullUrl = `${subscriptionUrl}#${name}`;
         const encodedUrl = encodeURIComponent(fullUrl);
         return `${scheme}${encodedUrl}`;
     }
-
-    // Streisand: streisand://import/SUB_URL#NAME
     if (app.useHash) {
         return `${scheme}${subscriptionUrl}#${name}`;
     }
-
-    // V2Box: v2box://install-sub?url=urlencode(SUB_URL)&name=NAME
     if (app.useName) {
         const encodedUrl = encodeURIComponent(subscriptionUrl);
         const encodedName = encodeURIComponent(name);
         return `${scheme}${encodedUrl}&name=${encodedName}`;
     }
-
-    // FlClash
     if (scheme.includes('flclash://')) {
         const encodedUrl = encodeURIComponent(subscriptionUrl);
         return `${scheme}${encodedUrl}`;
     }
-
-    // Happ
     if (scheme.includes('happ://')) {
         return `${scheme}${subscriptionUrl}`;
     }
-
     return `${scheme}${subscriptionUrl}`;
 }
-
 function handleImport(appName, scheme, client, action, mode, needsEncode, useHash, useName) {
     const name = document.getElementById("nameInput").value.trim();
     if (!name) {
-        alert("Введите имя пользователя!");
+        showNotification("Введите имя пользователя!", 'error');
         return;
     }
-
+    if (name.length < 2 || name.length > 50) {
+        showNotification("Имя должно быть от 2 до 50 символов!", 'error');
+        return;
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+        showNotification("Имя может содержать только буквы, цифры, дефис и подчеркивание!", 'error');
+        return;
+    }
     const subscriptionUrl = buildSubscriptionUrl(client, name, mode);
-
     if (action === 'manual') {
         showManualImportInstructions(appName, client, subscriptionUrl, mode);
         return;
     }
-
     if (!scheme) {
         copyToClipboard(subscriptionUrl, appName, mode);
         return;
     }
-
     const app = {
         scheme: scheme,
         needsEncode: !!needsEncode,
         useHash: !!useHash,
         useName: !!useName
     };
-
-    // ← теперь имя не передаётся, deep link всегда = Subscription
     const deepLink = buildDeepLink(app, subscriptionUrl, CONFIG.subscriptionName);
-
     console.log('Generated deepLink:', deepLink);
-
     try {
         window.location.href = deepLink;
         setTimeout(() => {
             window.location.href = deepLink;
         }, 300);
+        showNotification(`Открываю ${appName}...`, 'success');
     } catch (e) {
+        console.error('Navigation error:', e);
         copyToClipboard(subscriptionUrl, appName, mode);
-        showNotification('Не удалось открыть приложение напрямую — ссылка скопирована.');
+        showNotification('Не удалось открыть приложение — ссылка скопирована.', 'warning');
     }
 }
-
-function copyToClipboard(url, appName, mode) {
-    const tempInput = document.createElement("input");
-    tempInput.value = url;
-    document.body.appendChild(tempInput);
-    tempInput.select();
-    document.execCommand("copy");
-    document.body.removeChild(tempInput);
-
-    showNotification(`Ссылка для ${appName} (${mode}) скопирована в буфер обмена.`);
+async function copyToClipboard(url, appName, mode) {
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(url);
+        } else {
+            const tempInput = document.createElement("input");
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+        }
+        showNotification(`Ссылка для ${appName} (${mode}) скопирована в буфер обмена.`, 'success');
+    } catch (err) {
+        console.error('Copy failed:', err);
+        showNotification('Не удалось скопировать ссылку', 'error');
+    }
 }
-
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 function showManualImportInstructions(appName, client, url, mode) {
     const qrContainer = document.getElementById('qrcode');
     qrContainer.classList.add('active');
+    const safeAppName = escapeHtml(appName);
+    const safeUrl = escapeHtml(url);
     qrContainer.innerHTML = `
         <div class="manual-import">
-            <h3>Импорт в ${appName}</h3>
+            <h3>Импорт в ${safeAppName}</h3>
             <p class="instruction">Скопируйте ссылку или отсканируйте QR-код в приложении:</p>
             <div class="url-box">
-                <input type="text" readonly value="${url}" id="manualUrl" />
+                <input type="text" readonly value="${safeUrl}" id="manualUrl" />
                 <button class="button copy-button" onclick="copyManualUrl()">Копировать</button>
             </div>
             <canvas id="qrCanvas"></canvas>
         </div>
     `;
-
     const canvas = document.getElementById('qrCanvas');
     QRCode.toCanvas(canvas, url, {
         width: 250,
         margin: 2,
-        color: {
-            dark: '#212121',
-            light: '#FFFFFF'
-        }
+        color: { dark: '#212121', light: '#FFFFFF' }
     }, function (error) {
         if (error) console.error('Ошибка генерации QR-кода', error);
     });
 }
-
-function copyManualUrl() {
+async function copyManualUrl() {
     const urlInput = document.getElementById('manualUrl');
-    urlInput.select();
-    document.execCommand("copy");
-    showNotification('Ссылка скопирована в буфер обмена!');
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(urlInput.value);
+        } else {
+            urlInput.select();
+            document.execCommand("copy");
+        }
+        showNotification('Ссылка скопирована в буфер обмена!', 'success');
+    } catch (err) {
+        console.error('Copy failed:', err);
+        showNotification('Не удалось скопировать ссылку', 'error');
+    }
 }
-
-function showNotification(message) {
+function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
-    notification.className = 'notification';
+    notification.className = `notification notification-${type}`;
     notification.textContent = message;
     document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-
+    setTimeout(() => notification.classList.add('show'), 10);
     setTimeout(() => {
         notification.classList.remove('show');
         setTimeout(() => {
-            document.body.removeChild(notification);
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
         }, 300);
     }, 3000);
 }
+function toggleUserInfo() {
+    const modal = document.getElementById('userInfoModal');
+    const headerWrapper = document.querySelector('.header-wrapper');
+    
+    if (!modal.classList.contains('show')) {
+        modal.style.display = 'block';
+        headerWrapper.classList.add('modal-open');
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+        const nameInput = document.getElementById("nameInput").value.trim();
+        if (nameInput) {
+            UserInfoModule.update(nameInput);
+        }
+    } else {
+        closeUserInfo();
+    }
+}
 
+function closeUserInfo() {
+    const modal = document.getElementById('userInfoModal');
+    const headerWrapper = document.querySelector('.header-wrapper');
+    
+    if (modal.classList.contains('show')) {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            headerWrapper.classList.remove('modal-open');
+        }, 350);
+    }
+}
 window.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('userInfoModal');
+    modal.style.display = 'none';
     const params = new URLSearchParams(window.location.search);
     const name = params.get('name');
+    const nameInput = document.getElementById("nameInput");
     if (name) {
-        document.getElementById('nameInput').value = name;
+        nameInput.value = name;
+        UserInfoModule.update(name);
+    }
+    nameInput.addEventListener("input", () => {
+        clearTimeout(window.userInfoTimeout);
+        window.userInfoTimeout = setTimeout(() => {
+            UserInfoModule.update(nameInput.value);
+        }, 600);
+    });
+    const savedPlatform = localStorage.getItem('selectedPlatform');
+    const platformSelect = document.getElementById('platformSelect');
+    if (savedPlatform && platformSelect) {
+        platformSelect.value = savedPlatform;
+    }
+    if (platformSelect) {
+        platformSelect.addEventListener('change', () => {
+            localStorage.setItem('selectedPlatform', platformSelect.value);
+        });
     }
     updatePlatformContent();
 });
