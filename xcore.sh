@@ -1206,6 +1206,8 @@ swapfile() {
   chmod 600 /swapfile
   mkswap /swapfile
   swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+  swapon -a
   swapon --show
   
   chmod +x "${DIR_XCORE}/repo/cron_jobs/restart_warp.sh"
