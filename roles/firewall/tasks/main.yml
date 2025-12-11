@@ -1,0 +1,58 @@
+---
+- name: Detect local subnet
+  ansible.builtin.set_fact::
+    local_subnet: "{{ ansible_default_ipv4.address | ansible.utils.ipaddr('network/22') }}"
+  tags: [always]
+
+# --- Debian (UFW) ---
+- block:
+  - name: Install UFW
+    ansible.builtin.apt::
+      name: ufw
+      state: present
+
+  - name: Set default deny incoming
+    community.general.ufw: 
+      policy: deny 
+      direction: incoming
+
+  - name: Allow outgoing traffic
+    community.general.ufw:
+      policy: allow
+      direction: outgoing
+
+  - name: Allow TCP ports
+    community.general.ufw:
+      rule: allow
+      port: "{{ item | string }}"
+      proto: tcp
+    loop: "{{ firewall_allowed_tcp_ports }}"
+
+  - name: Enable UFW
+    community.general.ufw: 
+      state: enabled
+    notify: Reload UFW
+  when: ansible_os_family == 'Debian
+
+# --- RHEL/CentOS (Firewalld) ---
+- block:
+    - name: Install Firewalld
+      ansible.builtin.yum:
+        name: firewalld
+        state: present
+
+    - name: Start Firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: yes
+
+    - name: Permit TCP ports
+      ansible.posix.firewalld:
+        port: "{{ item }}/tcp"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop: "{{ firewall_allowed_tcp_ports }}"
+      notify: Reload firewalld
+  when: ansible_os_family == 'RedHat'

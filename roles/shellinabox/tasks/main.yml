@@ -1,0 +1,24 @@
+---
+- name: Install shellinabox (Debian)
+  ansible.builtin.apt:
+    name: shellinabox
+    state: present
+  when: ansible_os_family == 'Debian'
+
+- name: Install shellinabox (RHEL)
+  ansible.builtin.yum: 
+    name: shellinabox 
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Configure defaults
+  ansible.builtin.template:
+    src: shellinabox.j2
+    dest: /etc/default/shellinabox
+  notify: Restart shellinabox
+
+- name: Generate Nginx location
+  ansible.builtin.template:
+    src: shellinabox.conf.j2
+    dest: /etc/nginx/locations/shellinabox.conf
+  when: setup_shellinabox | default(false)

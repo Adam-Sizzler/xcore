@@ -1,0 +1,19 @@
+---
+common_packages_debian:
+  - curl
+  - wget
+  - htop
+  - tar
+  - unzip
+  - net-tools
+  - dnsutils
+
+common_packages_rhel:
+  - curl
+  - wget
+  - htop
+  - tar
+  - unzip
+  - net-tools
+  - bind-utils
+  - epel-release

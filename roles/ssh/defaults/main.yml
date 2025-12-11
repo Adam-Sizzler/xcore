@@ -1,0 +1,5 @@
+---
+ssh_port: 22
+ssh_permit_root_login: "prohibit-password"
+ssh_password_auth: "no"
+ssh_service_name: "{{ (ansible_os_family == 'Debian') | ternary('ssh', 'sshd') }}"

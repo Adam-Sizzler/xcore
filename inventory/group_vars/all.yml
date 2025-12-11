@@ -1,0 +1,37 @@
+---
+# === Включение ролей ===
+setup_common: true
+setup_ipv6_disable: true
+setup_swap: true
+setup_bbr: true
+setup_autoupdate: true
+setup_firewall: true
+setup_ssh_hardening: true
+setup_shellinabox: false
+
+# === Переопределения (Overrides) ===
+
+# SSH
+ssh_port: 22
+ssh_permit_root_login: "prohibit-password"
+ssh_password_authentication: "no"
+
+# Swap
+swap_size: "512M"
+swap_file_path: "/swapfile"
+
+# Firewall (Белый список портов)
+firewall_allowed_tcp_ports:
+  - "{{ ssh_port }}"
+  - "80"
+  - "443"
+firewall_allowed_udp_ports: []
+
+# Shellinabox
+shellinabox_port: 4200
+shellinabox_localhost_only: false # Если true, слушает только 127.0.0.1 (для проксирования через nginx)
+
+# AutoUpdate
+autoupdate_reboot: false
+autoupdate_reboot_time: "04:00"
+autoupdate_email_to: "admin@example.com"

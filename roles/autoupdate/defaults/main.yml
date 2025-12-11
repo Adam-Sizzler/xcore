@@ -1,0 +1,4 @@
+---
+autoupdate_email_from: "root@localhost"
+autoupdate_email_to: "root@localhost"
+autoupdate_reboot: "false"

@@ -1,0 +1,15 @@
+---
+- name: Configure SSH Daemon
+  ansible.builtin.lineinfile::
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+    validate: 'sshd -t -f %s'
+  loop:
+    - { regexp: '^#?Port', line: "Port {{ ssh_port }}" }
+    - { regexp: '^#?PermitRootLogin', line: "PermitRootLogin {{ ssh_permit_root_login }}" }
+    - { regexp: '^#?PasswordAuthentication', line: "PasswordAuthentication {{ ssh_password_authentication }}" }
+    - { regexp: '^#?PubkeyAuthentication', line: "PubkeyAuthentication yes" }
+    - { regexp: '^#?PermitEmptyPasswords', line: "PermitEmptyPasswords no" }
+  notify: Restart ssh
