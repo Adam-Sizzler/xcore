@@ -1,15 +1,19 @@
 ---
 - name: Update apt cache (Debian)
-  ansible.builtin.apt::
+  ansible.builtin.apt:
     update_cache: yes
     cache_valid_time: 3600
   when: ansible_os_family == 'Debian'
+  environment:
+    DEBIAN_FRONTEND: noninteractive
 
 - name: Install basic packages (Debian)
   ansible.builtin.apt:
     name: "{{ common_packages_debian }}"
     state: present
   when: ansible_os_family == 'Debian'
+  environment:
+    DEBIAN_FRONTEND: noninteractive
 
 - name: Install basic packages (RHEL)
   ansible.builtin.yum:

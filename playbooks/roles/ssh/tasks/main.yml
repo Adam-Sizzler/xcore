@@ -1,6 +1,6 @@
 ---
 - name: Configure SSH Daemon
-  ansible.builtin.lineinfile::
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"

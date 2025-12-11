@@ -1,13 +1,13 @@
 ---
 - name: Detect local subnet
-  ansible.builtin.set_fact::
+  ansible.builtin.set_fact:
     local_subnet: "{{ ansible_default_ipv4.address | ansible.utils.ipaddr('network/22') }}"
   tags: [always]
 
 # --- Debian (UFW) ---
 - block:
   - name: Install UFW
-    ansible.builtin.apt::
+    ansible.builtin.apt:
       name: ufw
       state: present
 

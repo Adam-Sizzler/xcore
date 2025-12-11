@@ -6,18 +6,49 @@
 
   # Предварительная установка Python (если нужно для старых систем)
   pre_tasks:
-    - name: Ensure python3 is installed (Debian/Ubuntu)
+    # 1. Установка базового Python (если отсутствует)
+    - name: Ensure python3-minimal is installed (Debian/Ubuntu)
       raw: test -e /usr/bin/python3 || (apt -y update && apt install -y python3-minimal)
       register: output
       changed_when: output.stdout != ""
       when: ansible_os_family == "Debian"
 
+    # 2. Установка зависимостей, необходимых для работы модуля 'apt'
+    - name: Ensure python3-apt is installed for Ansible modules (Debian/Ubuntu)
+      raw: apt install -y python3-apt
+      register: output
+      changed_when: output.stdout is defined and output.stdout | length > 0
+      when: ansible_os_family == "Debian"
+
   roles:
-    - { role: common,        tags: ['common'],        when: setup_common | default(true) }
-    - { role: ipv6,          tags: ['ipv6'],          when: setup_ipv6_disable | default(false) }
-    - { role: swap,          tags: ['swap'],          when: setup_swap | default(false) }
-    - { role: bbr,           tags: ['bbr'],           when: setup_bbr | default(false) }
-    - { role: autoupdate,    tags: ['autoupdate'],    when: setup_autoupdate | default(false) }
-    - { role: shellinabox,   tags: ['shellinabox'],   when: setup_shellinabox | default(false) }
-    - { role: firewall,      tags: ['firewall'],      when: setup_firewall | default(false) }
-    - { role: ssh,           tags: ['ssh'],           when: setup_ssh_hardening | default(false) }
+    - role: common
+      tags: ['common']
+      when: setup_common | default(true)
+
+    - role: ipv6
+      tags: ['ipv6']
+      when: setup_ipv6_disable | default(false)
+
+    - role: swap
+      tags: ['swap']
+      when: setup_swap | default(false)
+
+    - role: bbr
+      tags: ['bbr']
+      when: setup_bbr | default(false)
+
+    - role: autoupdate
+      tags: ['autoupdate']
+      when: setup_autoupdate | default(false)
+
+    - role: shellinabox
+      tags: ['shellinabox']
+      when: setup_shellinabox | default(false)
+
+    - role: firewall
+      tags: ['firewall']
+      when: setup_firewall | default(false)
+
+    - role: ssh
+      tags: ['ssh']
+      when: setup_ssh_hardening | default(false)
