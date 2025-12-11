@@ -4,22 +4,6 @@
   become: true
   gather_facts: true
 
-  # Предварительная установка Python (если нужно для старых систем)
-  pre_tasks:
-    # 1. Установка базового Python (если отсутствует)
-    - name: Ensure python3-minimal is installed (Debian/Ubuntu)
-      raw: test -e /usr/bin/python3 || (apt -y update && apt install -y python3-minimal)
-      register: output
-      changed_when: output.stdout != ""
-      when: ansible_os_family == "Debian"
-
-    # 2. Установка зависимостей, необходимых для работы модуля 'apt'
-    - name: Ensure python3-apt is installed for Ansible modules (Debian/Ubuntu)
-      raw: apt install -y python3-apt
-      register: output
-      changed_when: output.stdout is defined and output.stdout | length > 0
-      when: ansible_os_family == "Debian"
-
   roles:
     - role: common
       tags: ['common']
