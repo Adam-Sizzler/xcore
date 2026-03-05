@@ -22,7 +22,7 @@
     mode: '0644'
   loop:
     - { src: 'templates/singbox/advanced/config.json.j2', dest: 'singbox/advanced/config.json' }
-    - { src: 'templates/mihomo/advanced/base.yml.j2', dest: 'mihomo/advanced/base.yaml' }
+    - { src: 'templates/mihomo/advanced/base.yml.j2', dest: 'mihomo/advanced/base.yml' }
     - { src: 'templates/mihomo/advanced/config.yml.j2', dest: 'mihomo/advanced/config.yml' }
     - { src: 'templates/xray/advanced/config.json.j2', dest: 'xray/advanced/config.json' }
     - { src: 'templates/xray/base/config.base.j2', dest: 'xray/base/config.base' }
